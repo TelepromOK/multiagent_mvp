@@ -1,7 +1,42 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
+
+
+AgentQuestionCategory = Literal[
+    "scope_clarification",
+    "business_rule_clarification",
+    "api_contract_clarification",
+    "ux_behavior_clarification",
+    "risk_confirmation",
+]
+
+
+class AgentQuestion(BaseModel):
+    from_role: str
+    to_role: str
+    category: AgentQuestionCategory
+    question: str
+    reason: str
+    blocking: bool
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AgentAnswer(BaseModel):
+    from_role: str
+    to_role: str
+    answer: str
+    decision: str
+    constraints: List[str] = Field(default_factory=list)
+    resolved: bool
+
+
+class AgentDialogueTurn(BaseModel):
+    question: AgentQuestion
+    answer: AgentAnswer
+
 
 class ArchitectureReviewerReport(BaseModel):
     summary: str = Field(description="Resumen ejecutivo de la revisión arquitectónica")
@@ -128,5 +163,5 @@ class ProjectState(BaseModel):
 
 class ProjectResponse(BaseModel):
     project_id: str
-    status: Literal["completed"]
+    status: Literal["completed", "blocked"]
     state: ProjectState

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Tuple, Type
@@ -28,6 +29,71 @@ except Exception:
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
+
+# ==========================================================
+# AGENT QUERY GOVERNANCE
+# ==========================================================
+
+AGENT_QUERY_GOVERNANCE: Dict[str, Any] = {
+    "allowed_sender_roles": {
+        "product_owner",
+        "functional_analyst",
+        "backend_developer",
+        "frontend_developer",
+        "architecture_reviewer",
+        "qa_analyst",
+        "commit_manager",
+    },
+    "allowed_receiver_roles": {
+        "product_owner",
+        "functional_analyst",
+        "backend_developer",
+        "frontend_developer",
+        "architecture_reviewer",
+        "qa_analyst",
+        "commit_manager",
+    },
+    "allowed_categories_by_relation": {
+        ("functional_analyst", "product_owner"): {
+            "scope_clarification",
+            "business_rule_clarification",
+        },
+        ("backend_developer", "functional_analyst"): {
+            "api_contract_clarification",
+            "data_rule_clarification",
+        },
+        ("frontend_developer", "functional_analyst"): {
+            "ux_flow_clarification",
+            "acceptance_criteria_clarification",
+        },
+        ("qa_analyst", "functional_analyst"): {
+            "testability_clarification",
+            "acceptance_criteria_clarification",
+        },
+        ("qa_analyst", "backend_developer"): {
+            "integration_test_clarification",
+            "error_handling_clarification",
+        },
+        ("qa_analyst", "frontend_developer"): {
+            "e2e_flow_clarification",
+            "state_behavior_clarification",
+        },
+        ("architecture_reviewer", "backend_developer"): {
+            "risk_clarification",
+            "architecture_consistency",
+        },
+        ("architecture_reviewer", "frontend_developer"): {
+            "risk_clarification",
+            "architecture_consistency",
+        },
+        ("commit_manager", "qa_analyst"): {
+            "release_gate_clarification",
+            "residual_risk_clarification",
+        },
+    },
+    # Gobernanza explícita: solo se admite 1 o 2 preguntas por etapa.
+    "max_questions_per_stage": 2,
+}
 
 
 class ClarificationAnswer(BaseModel):
@@ -141,6 +207,25 @@ class PipelineOrchestrator:
         )
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
+        state.current_phase = "architecture_review_gate"
+
+        is_architecture_approved, architecture_block_reasons = self._evaluate_architecture_gate(
+            architecture_review
+        )
+        if not is_architecture_approved:
+            state.current_phase = "blocked_architecture_review"
+            state.audit_log.append(
+                self._format_blocking_audit_entry(
+                    gate_name="architecture_review",
+                    block_reasons=architecture_block_reasons,
+                )
+            )
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- QA ----------------
         test_plan = await self._run_role(
@@ -155,6 +240,23 @@ class PipelineOrchestrator:
         )
         state.artifacts.test_plan = test_plan
         state.audit_log.append("QA Analyst completado")
+        state.current_phase = "qa_gate"
+
+        is_qa_approved, qa_block_reasons = self._evaluate_qa_gate(test_plan)
+        if not is_qa_approved:
+            state.current_phase = "blocked_qa_gate"
+            state.audit_log.append(
+                self._format_blocking_audit_entry(
+                    gate_name="qa_gate",
+                    block_reasons=qa_block_reasons,
+                )
+            )
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- RELEASE ----------------
         release_bundle = await self._run_role(
@@ -453,12 +555,181 @@ class PipelineOrchestrator:
         raise TypeError(f"Formato de salida no soportado: {type(raw_output)!r}")
 
     # ==========================================================
+    # AGENT-TO-AGENT QUERY GOVERNANCE
+    # ==========================================================
+
+    def _validate_agent_query(
+        self,
+        from_role: str,
+        to_role: str,
+        category: str,
+        stage_counter: int,
+    ) -> Tuple[bool, str]:
+        max_questions = AGENT_QUERY_GOVERNANCE["max_questions_per_stage"]
+        if max_questions not in (1, 2):
+            return False, "Configuración inválida: max_questions_per_stage debe ser 1 o 2"
+
+        if from_role not in AGENT_QUERY_GOVERNANCE["allowed_sender_roles"]:
+            return False, f"Rol emisor no permitido: {from_role}"
+
+        if to_role not in AGENT_QUERY_GOVERNANCE["allowed_receiver_roles"]:
+            return False, f"Rol receptor no permitido: {to_role}"
+
+        relation = (from_role, to_role)
+        allowed_categories = AGENT_QUERY_GOVERNANCE["allowed_categories_by_relation"].get(
+            relation
+        )
+        if not allowed_categories:
+            return False, f"Relación no permitida: {from_role} -> {to_role}"
+
+        if category not in allowed_categories:
+            return (
+                False,
+                f"Categoría no permitida para {from_role} -> {to_role}: {category}",
+            )
+
+        if stage_counter >= max_questions:
+            return (
+                False,
+                f"Máximo de preguntas por etapa excedido ({max_questions})",
+            )
+
+        return True, "ok"
+
+    def _handle_invalid_agent_query(
+        self,
+        audit_log: list[str],
+        stage_artifact: Dict[str, Any],
+        from_role: str,
+        to_role: str,
+        category: str,
+        question: str,
+        reason: str,
+    ) -> None:
+        audit_log.append(
+            (
+                "Consulta bloqueada por gobernanza "
+                f"({from_role}->{to_role}, category={category}): {reason}. "
+                f"Duda convertida a open_question."
+            )
+        )
+        stage_artifact.setdefault("open_questions", []).append(question)
+
+    def _register_agent_query(
+        self,
+        audit_log: list[str],
+        stage_artifact: Dict[str, Any],
+        from_role: str,
+        to_role: str,
+        category: str,
+        question: str,
+        stage_counter: int,
+    ) -> bool:
+        """
+        Evalúa la gobernanza de una consulta entre agentes.
+        Devuelve True si la consulta está permitida y puede ejecutarse.
+        Si no está permitida, registra audit_log y convierte la duda en open_question.
+        """
+        is_valid, reason = self._validate_agent_query(
+            from_role=from_role,
+            to_role=to_role,
+            category=category,
+            stage_counter=stage_counter,
+        )
+        if not is_valid:
+            self._handle_invalid_agent_query(
+                audit_log=audit_log,
+                stage_artifact=stage_artifact,
+                from_role=from_role,
+                to_role=to_role,
+                category=category,
+                question=question,
+                reason=reason,
+            )
+            return False
+
+        return True
+
+    # ==========================================================
     # STORAGE
     # ==========================================================
 
     def _persist_state(self, state: ProjectState) -> None:
         out_path = DATA_DIR / f"{state.project_id}.json"
         out_path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
+
+    # ==========================================================
+    # GATES
+    # ==========================================================
+
+    def _evaluate_architecture_gate(
+        self, architecture_review: BaseModel
+    ) -> Tuple[bool, list[str]]:
+        approval_status = (
+            getattr(architecture_review, "approval_status", "") or ""
+        ).strip().lower()
+        issues = getattr(architecture_review, "issues", []) or []
+        security_observations = (
+            getattr(architecture_review, "security_observations", []) or []
+        )
+
+        block_reasons: list[str] = []
+        allowed_statuses = {"approved", "approved_with_changes"}
+        if approval_status not in allowed_statuses:
+            block_reasons.append(
+                "approval_status fuera de criterio de continuidad "
+                f"(valor={approval_status or 'vacío'}, esperado in {sorted(allowed_statuses)})"
+            )
+
+        critical_risks = self._extract_critical_items(issues + security_observations)
+        if critical_risks:
+            block_reasons.append(
+                "riesgos críticos detectados: " + " | ".join(critical_risks)
+            )
+
+        return len(block_reasons) == 0, block_reasons
+
+    def _evaluate_qa_gate(self, test_plan: BaseModel) -> Tuple[bool, list[str]]:
+        release_gates = getattr(test_plan, "release_gates", []) or []
+        coverage = getattr(test_plan, "coverage", []) or []
+
+        block_reasons: list[str] = []
+        failed_gates = self._extract_failed_release_gates(release_gates)
+        if failed_gates:
+            block_reasons.append("release_gates no cumplidos: " + " | ".join(failed_gates))
+
+        coverage_gaps = self._extract_gap_items(coverage + release_gates)
+        if coverage_gaps:
+            block_reasons.append("gaps de QA/coverage: " + " | ".join(coverage_gaps))
+
+        return len(block_reasons) == 0, block_reasons
+
+    def _extract_critical_items(self, items: list[str]) -> list[str]:
+        critical_pattern = re.compile(
+            r"\b(critical|crítico|critico|high risk|severo|bloqueante|blocker)\b",
+            re.IGNORECASE,
+        )
+        return [item for item in items if critical_pattern.search(item or "")]
+
+    def _extract_gap_items(self, items: list[str]) -> list[str]:
+        gap_pattern = re.compile(
+            r"\b(gap|faltante|missing|pendiente|incompleto|insuficiente)\b",
+            re.IGNORECASE,
+        )
+        return [item for item in items if gap_pattern.search(item or "")]
+
+    def _extract_failed_release_gates(self, release_gates: list[str]) -> list[str]:
+        failed_pattern = re.compile(
+            r"\b(fail|failed|no cumple|blocked|bloqueado|rechazado|pendiente)\b",
+            re.IGNORECASE,
+        )
+        return [gate for gate in release_gates if failed_pattern.search(gate or "")]
+
+    def _format_blocking_audit_entry(
+        self, gate_name: str, block_reasons: list[str]
+    ) -> str:
+        reasons = " || ".join(block_reasons) if block_reasons else "sin detalle"
+        return f"Pipeline bloqueado en {gate_name}. Criterios incumplidos: {reasons}"
 
 
 # ==============================================================
