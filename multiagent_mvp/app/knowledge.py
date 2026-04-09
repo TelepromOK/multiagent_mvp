@@ -48,6 +48,10 @@ def build_default_knowledge_provider() -> KnowledgeProvider:
                 "Priorizar simplificaciones de arquitectura para un MVP.",
                 "Balancear atributos de calidad: seguridad, mantenibilidad y rendimiento.",
             ],
+            "architecture_reviewer": [
+                "Evaluar consistencia entre requerimientos, backend y frontend.",
+                "Priorizar simplificaciones de arquitectura para un MVP.",
+            ],
             "qa_analyst": [
                 "Cubrir happy path, errores y regresión mínima.",
                 "Definir gates de release claros.",

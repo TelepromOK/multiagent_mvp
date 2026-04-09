@@ -449,6 +449,7 @@ def build_functional_analyst_agent(role_context: str):
         Skills del rol:
         {_format_skills("functional_analyst")}
 
+
         Perfil operativo:
         {_format_behavior("functional_analyst")}
 
@@ -484,6 +485,7 @@ def build_backend_agent(role_context: str):
 
         Quality gates del rol:
         {_format_gates("backend_developer")}
+
 
         Contexto:
         {role_context}
