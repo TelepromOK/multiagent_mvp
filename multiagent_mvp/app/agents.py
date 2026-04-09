@@ -596,6 +596,7 @@ def build_architecture_reviewer_agent(role_context: str):
         - Priorizá simplificaciones razonables para un MVP
         - Señalá riesgos de seguridad y compliance
         - No inventes features fuera del alcance
+        - Marcá issue explícito si detectás scope creep sin evidencia de decisión del Product Owner en `agent_dialogue`
         - Devolvé solo JSON válido
 
         Skills del rol:
