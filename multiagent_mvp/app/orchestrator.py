@@ -169,18 +169,10 @@ class PipelineOrchestrator:
         )
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
-        state.current_phase = "architecture_review_gate"
-
-        is_architecture_approved, architecture_block_reasons = self._evaluate_architecture_gate(
-            architecture_review
-        )
-        if not is_architecture_approved:
+        if self._should_block_on_architecture_review(architecture_review.approval_status):
             state.current_phase = "blocked_architecture_review"
             state.audit_log.append(
-                self._format_blocking_audit_entry(
-                    gate_name="architecture_review",
-                    block_reasons=architecture_block_reasons,
-                )
+                f"Pipeline bloqueado por Architecture Reviewer: {architecture_review.approval_status}"
             )
             self._persist_state(state)
             return ProjectResponse(
@@ -202,17 +194,9 @@ class PipelineOrchestrator:
         )
         state.artifacts.test_plan = test_plan
         state.audit_log.append("QA Analyst completado")
-        state.current_phase = "qa_gate"
-
-        is_qa_approved, qa_block_reasons = self._evaluate_qa_gate(test_plan)
-        if not is_qa_approved:
+        if self._has_blocking_release_gates(test_plan.release_gates):
             state.current_phase = "blocked_qa_gate"
-            state.audit_log.append(
-                self._format_blocking_audit_entry(
-                    gate_name="qa_gate",
-                    block_reasons=qa_block_reasons,
-                )
-            )
+            state.audit_log.append("Pipeline bloqueado por QA release gates bloqueantes")
             self._persist_state(state)
             return ProjectResponse(
                 project_id=project_id,
@@ -620,108 +604,13 @@ class PipelineOrchestrator:
         out_path = DATA_DIR / f"{state.project_id}.json"
         out_path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
 
-    # ==========================================================
-    # SCOPE GOVERNANCE
-    # ==========================================================
+    def _should_block_on_architecture_review(self, approval_status: str) -> bool:
+        normalized = approval_status.strip().lower()
+        return normalized in {"rejected", "reject", "blocked", "block"}
 
-    def _extract_agent_dialogue(self, context: Dict[str, Any]) -> List[str]:
-        raw_dialogue = context.get("agent_dialogue", [])
-        if isinstance(raw_dialogue, str):
-            return [raw_dialogue]
-        if isinstance(raw_dialogue, list):
-            return [str(item) for item in raw_dialogue if item is not None]
-        return []
-
-    def _enforce_scope_policy(
-        self,
-        state: ProjectState,
-        role: str,
-        artifact: BaseModel,
-        fallback_scope: str,
-    ) -> BaseModel:
-        has_scope_change = self._detect_scope_creep(artifact)
-        has_po_confirmation = self._has_explicit_po_confirmation(state.agent_dialogue)
-        if not has_scope_change or has_po_confirmation:
-            return artifact
-
-        warning = (
-            f"WARNING: {role} propuso cambio de alcance MVP sin confirmación explícita del Product Owner."
-        )
-        state.audit_log.append(warning)
-        state.open_questions.append(
-            f"Confirmar con Product Owner si se aprueba cambio de alcance sugerido por {role}."
-        )
-
-        if isinstance(artifact, RequirementsSpec):
-            artifact.scope = fallback_scope
-            artifact.open_questions.append(
-                "Pendiente PO: decidir si se habilita ampliación de scope sugerida por functional_analyst."
-            )
-            return artifact
-
-        if isinstance(artifact, BackendSpec):
-            artifact.domain_entities = self._filter_scope_candidates(artifact.domain_entities)
-            artifact.data_model = self._filter_scope_candidates(artifact.data_model)
-            artifact.technical_risks = self._filter_scope_candidates(artifact.technical_risks)
-            artifact.api_endpoints = [
-                endpoint
-                for endpoint in artifact.api_endpoints
-                if not self._looks_like_scope_creep(
-                    f"{endpoint.method} {endpoint.path} {endpoint.purpose}"
-                )
-            ]
-            return artifact
-
-        if isinstance(artifact, FrontendSpec):
-            artifact.integration_points = self._filter_scope_candidates(artifact.integration_points)
-            artifact.ux_risks = self._filter_scope_candidates(artifact.ux_risks)
-            artifact.screens = [
-                screen
-                for screen in artifact.screens
-                if not self._looks_like_scope_creep(
-                    f"{screen.name} {screen.purpose} {' '.join(screen.main_components)}"
-                )
-            ]
-            return artifact
-
-        return artifact
-
-    def _flag_scope_creep_in_review(
-        self,
-        state: ProjectState,
-        architecture_review: BaseModel,
-        artifacts: Iterable[BaseModel],
-    ) -> BaseModel:
-        has_scope_creep = any(self._detect_scope_creep(artifact) for artifact in artifacts)
-        has_po_confirmation = self._has_explicit_po_confirmation(state.agent_dialogue)
-
-        if not has_scope_creep or has_po_confirmation:
-            return architecture_review
-
-        issue = (
-            "Scope creep detectado sin decisión explícita del Product Owner en agent_dialogue."
-        )
-        if issue not in architecture_review.issues:
-            architecture_review.issues.append(issue)
-        if architecture_review.approval_status == "approved":
-            architecture_review.approval_status = "approved_with_changes"
-        return architecture_review
-
-    def _detect_scope_creep(self, artifact: BaseModel) -> bool:
-        artifact_text = json.dumps(artifact.model_dump(), ensure_ascii=False).lower()
-        return self._looks_like_scope_creep(artifact_text)
-
-    def _has_explicit_po_confirmation(self, agent_dialogue: List[str]) -> bool:
-        dialogue_text = " ".join(agent_dialogue).lower()
-        return any(hint in dialogue_text for hint in PO_CONFIRMATION_HINTS)
-
-    def _looks_like_scope_creep(self, text: str) -> bool:
-        normalized = text.lower()
-        return any(hint in normalized for hint in SCOPE_CREEP_HINTS)
-
-    def _filter_scope_candidates(self, values: List[str]) -> List[str]:
-        filtered = [value for value in values if not self._looks_like_scope_creep(value)]
-        return filtered or values
+    def _has_blocking_release_gates(self, release_gates: list[str]) -> bool:
+        blocking_keywords = ("block", "bloque", "must-fix", "must fix", "critical")
+        return any(any(keyword in gate.lower() for keyword in blocking_keywords) for gate in release_gates)
 
 
 # ==============================================================
