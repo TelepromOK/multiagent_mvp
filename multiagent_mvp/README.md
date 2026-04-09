@@ -18,6 +18,20 @@ La idea es que cada agente:
 4. produzca un output estructurado,
 5. y ese output pase al siguiente agente.
 
+
+Cada rol ahora trabaja con un **perfil operativo senior** con:
+
+- **core_skills**
+- **decision_rules**
+- **inputs_expected**
+- **outputs_expected**
+- **quality_criteria**
+- **anti_patterns**
+- **collaboration_handoffs**
+
+Además, el sistema define para cada rol un **behavior profile** y, donde aplica, **quality gates** que pueden bloquear el pipeline.
+
+
 ## Stack
 
 - **FastAPI** para exponer la API del MVP
