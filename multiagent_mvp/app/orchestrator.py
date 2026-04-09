@@ -28,6 +28,71 @@ except Exception:
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
 
+# ==========================================================
+# AGENT QUERY GOVERNANCE
+# ==========================================================
+
+AGENT_QUERY_GOVERNANCE: Dict[str, Any] = {
+    "allowed_sender_roles": {
+        "product_owner",
+        "functional_analyst",
+        "backend_developer",
+        "frontend_developer",
+        "architecture_reviewer",
+        "qa_analyst",
+        "commit_manager",
+    },
+    "allowed_receiver_roles": {
+        "product_owner",
+        "functional_analyst",
+        "backend_developer",
+        "frontend_developer",
+        "architecture_reviewer",
+        "qa_analyst",
+        "commit_manager",
+    },
+    "allowed_categories_by_relation": {
+        ("functional_analyst", "product_owner"): {
+            "scope_clarification",
+            "business_rule_clarification",
+        },
+        ("backend_developer", "functional_analyst"): {
+            "api_contract_clarification",
+            "data_rule_clarification",
+        },
+        ("frontend_developer", "functional_analyst"): {
+            "ux_flow_clarification",
+            "acceptance_criteria_clarification",
+        },
+        ("qa_analyst", "functional_analyst"): {
+            "testability_clarification",
+            "acceptance_criteria_clarification",
+        },
+        ("qa_analyst", "backend_developer"): {
+            "integration_test_clarification",
+            "error_handling_clarification",
+        },
+        ("qa_analyst", "frontend_developer"): {
+            "e2e_flow_clarification",
+            "state_behavior_clarification",
+        },
+        ("architecture_reviewer", "backend_developer"): {
+            "risk_clarification",
+            "architecture_consistency",
+        },
+        ("architecture_reviewer", "frontend_developer"): {
+            "risk_clarification",
+            "architecture_consistency",
+        },
+        ("commit_manager", "qa_analyst"): {
+            "release_gate_clarification",
+            "residual_risk_clarification",
+        },
+    },
+    # Gobernanza explícita: solo se admite 1 o 2 preguntas por etapa.
+    "max_questions_per_stage": 2,
+}
+
 
 class PipelineOrchestrator:
     def __init__(self, knowledge_provider: KnowledgeProvider):
@@ -235,6 +300,102 @@ class PipelineOrchestrator:
             return output_model.model_validate_json(raw_output)
 
         raise TypeError(f"Formato de salida no soportado: {type(raw_output)!r}")
+
+    # ==========================================================
+    # AGENT-TO-AGENT QUERY GOVERNANCE
+    # ==========================================================
+
+    def _validate_agent_query(
+        self,
+        from_role: str,
+        to_role: str,
+        category: str,
+        stage_counter: int,
+    ) -> Tuple[bool, str]:
+        max_questions = AGENT_QUERY_GOVERNANCE["max_questions_per_stage"]
+        if max_questions not in (1, 2):
+            return False, "Configuración inválida: max_questions_per_stage debe ser 1 o 2"
+
+        if from_role not in AGENT_QUERY_GOVERNANCE["allowed_sender_roles"]:
+            return False, f"Rol emisor no permitido: {from_role}"
+
+        if to_role not in AGENT_QUERY_GOVERNANCE["allowed_receiver_roles"]:
+            return False, f"Rol receptor no permitido: {to_role}"
+
+        relation = (from_role, to_role)
+        allowed_categories = AGENT_QUERY_GOVERNANCE["allowed_categories_by_relation"].get(
+            relation
+        )
+        if not allowed_categories:
+            return False, f"Relación no permitida: {from_role} -> {to_role}"
+
+        if category not in allowed_categories:
+            return (
+                False,
+                f"Categoría no permitida para {from_role} -> {to_role}: {category}",
+            )
+
+        if stage_counter >= max_questions:
+            return (
+                False,
+                f"Máximo de preguntas por etapa excedido ({max_questions})",
+            )
+
+        return True, "ok"
+
+    def _handle_invalid_agent_query(
+        self,
+        audit_log: list[str],
+        stage_artifact: Dict[str, Any],
+        from_role: str,
+        to_role: str,
+        category: str,
+        question: str,
+        reason: str,
+    ) -> None:
+        audit_log.append(
+            (
+                "Consulta bloqueada por gobernanza "
+                f"({from_role}->{to_role}, category={category}): {reason}. "
+                f"Duda convertida a open_question."
+            )
+        )
+        stage_artifact.setdefault("open_questions", []).append(question)
+
+    def _register_agent_query(
+        self,
+        audit_log: list[str],
+        stage_artifact: Dict[str, Any],
+        from_role: str,
+        to_role: str,
+        category: str,
+        question: str,
+        stage_counter: int,
+    ) -> bool:
+        """
+        Evalúa la gobernanza de una consulta entre agentes.
+        Devuelve True si la consulta está permitida y puede ejecutarse.
+        Si no está permitida, registra audit_log y convierte la duda en open_question.
+        """
+        is_valid, reason = self._validate_agent_query(
+            from_role=from_role,
+            to_role=to_role,
+            category=category,
+            stage_counter=stage_counter,
+        )
+        if not is_valid:
+            self._handle_invalid_agent_query(
+                audit_log=audit_log,
+                stage_artifact=stage_artifact,
+                from_role=from_role,
+                to_role=to_role,
+                category=category,
+                question=question,
+                reason=reason,
+            )
+            return False
+
+        return True
 
     # ==========================================================
     # STORAGE
