@@ -1,0 +1,655 @@
+{
+  "project_id": "731aff3c-1d11-48ec-ad38-b58e869024d0",
+  "title": "Onboarding digital de clientes",
+  "goal": "Construir un sistema de onboarding digital para clientes con backend API y frontend web",
+  "current_phase": "completed",
+  "constraints": [],
+  "context": {},
+  "artifacts": {
+    "product_brief": {
+      "product_summary": "Sistema de onboarding digital que permite a nuevos clientes registrarse y validar su identidad de manera remota, ágil y segura a través de una interfaz web y una API backend.",
+      "business_goals": [
+        "Reducir el tiempo promedio de alta de nuevos clientes en un 80%",
+        "Aumentar la tasa de conversión de prospectos a clientes en un 30%",
+        "Disminuir los costos operativos asociados al onboarding presencial en un 50%",
+        "Cumplir con normativas legales y de compliance sobre identificación y prevención de fraude"
+      ],
+      "personas": [
+        "Nuevos clientes (usuarios finales que buscan abrir una cuenta digitalmente)",
+        "Equipo de compliance y legales (verifican cumplimiento normativo y antifraude)",
+        "Equipo de ventas y soporte (dan seguimiento y soporte a los clientes en el proceso de onboarding)",
+        "Desarrolladores y administradores del sistema (internos)"
+      ],
+      "epics": [
+        "Desarrollo de la API backend segura para gestión de usuarios y documentos",
+        "Construcción del frontend web responsivo para la experiencia del usuario final",
+        "Integración de servicios de validación de identidad y prevención de fraude",
+        "Creación de panel para monitoreo y gestión por equipos internos (compliance, soporte)",
+        "Implementación y validación de flujos según normativa vigente"
+      ],
+      "risks": [
+        "Posibles vulnerabilidades de seguridad en la gestión de datos privados",
+        "Fallas en la integración con servicios externos de validación de identidad",
+        "Cambios en la regulación legal o requisitos de compliance",
+        "Resistencia de usuarios a la adopción de procesos 100% digitales",
+        "Problemas de usabilidad que generen abandonos en el flujo de onboarding"
+      ]
+    },
+    "requirements_spec": {
+      "scope": "Implementación de un sistema de onboarding digital que permita a nuevos clientes registrarse y validar su identidad de forma remota, ágil y segura, a través de un frontend web y una API backend. El sistema debe integrarse con servicios externos de validación de identidad y fraude, contar con un panel de gestión interna y cumplir con la normativa vigente.",
+      "business_rules": [
+        "El proceso de onboarding debe cumplir con los requisitos legales aplicables en materia de identificación de clientes y prevención de fraude.",
+        "La verificación de identidad debe realizarse mediante la integración con un servicio externo homologado.",
+        "Toda la información capturada durante el onboarding debe almacenarse de manera cifrada.",
+        "El proceso de onboarding debe poder completarse en no más de 15 minutos.",
+        "Solo se permitirá la apertura de cuenta a mayores de 18 años.",
+        "Cada registro debe ser único por tipo y número de documento.",
+        "Se deben registrar y rastrear todos los eventos relevantes durante el proceso de onboarding para auditoría.",
+        "Los usuarios internos solo pueden acceder a la información relevante de los clientes según su perfil de permisos.",
+        "El sistema debe generar alertas ante sospechas de fraude o intentos de registros repetidos.",
+        "La comunicación entre la interfaz web y la API debe realizarse a través de protocolos seguros (HTTPS)."
+      ],
+      "user_stories": [
+        {
+          "id": "US01",
+          "title": "Registro y carga inicial de datos personales",
+          "description": "Como nuevo cliente, quiero poder ingresar mis datos personales básicos para comenzar el proceso de apertura de cuenta digital.",
+          "acceptance_criteria": [
+            "El sistema permite ingresar nombre, apellido, tipo y número de documento, fecha de nacimiento y correo electrónico.",
+            "El usuario no puede continuar si falta algún dato obligatorio.",
+            "El sistema valida en tiempo real la unicidad del tipo y número de documento.",
+            "Los datos ingresados se muestran para confirmación antes de pasar al siguiente paso."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US02",
+          "title": "Validación remota de identidad",
+          "description": "Como nuevo cliente, quiero poder validar mi identidad de forma remota subiendo fotos de mi documento y realizando una prueba de vida, para completar mi registro.",
+          "acceptance_criteria": [
+            "El sistema solicita al usuario la captura o subida de las imágenes del documento (anverso y reverso) y una selfie.",
+            "El sistema realiza la validación de coincidencia facial y de autenticidad del documento utilizando un servicio externo.",
+            "El usuario recibe feedback inmediato sobre la validación (aprobada/rechazada/con error).",
+            "Los errores deben indicar el motivo para guiar al usuario."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US03",
+          "title": "Seguimiento y soporte durante el proceso",
+          "description": "Como usuario, quiero poder contactar al soporte o acceder a ayuda en cualquier paso del onboarding, para resolver posibles inconvenientes durante mi registro.",
+          "acceptance_criteria": [
+            "El sistema provee acceso visible a canales de ayuda o contacto en cada paso.",
+            "Las consultas se registran y pueden ser rastreadas por el equipo de soporte.",
+            "El usuario puede abandonar y retomar el proceso desde donde lo dejó.",
+            "El sistema guarda automáticamente el progreso del usuario."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US04",
+          "title": "Monitoreo y gestión del proceso de onboarding",
+          "description": "Como colaborador de compliance o soporte, quiero acceder a un panel donde pueda visualizar el estado de las altas de clientes, consultar detalles y generar reportes, para gestionar el proceso de onboarding y asegurar el cumplimiento normativo.",
+          "acceptance_criteria": [
+            "El panel muestra una lista de solicitudes de onboarding con filtros por estado (pendiente, en proceso, aprobado, rechazado).",
+            "Es posible consultar el detalle de cada solicitud y acceder a los documentos y registros asociados.",
+            "El sistema permite exportar reportes en formatos estándar (.csv, .xlsx).",
+            "El acceso a los datos está restringido según perfil de usuario interno."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US05",
+          "title": "Gestión segura de usuarios y documentos",
+          "description": "Como administrador interno, quiero que la API backend gestione de forma segura los usuarios, documentos y eventos del onboarding, para asegurar integridad y trazabilidad del proceso.",
+          "acceptance_criteria": [
+            "La API expone endpoints autenticados para gestión de usuarios, documentos y estados de onboarding.",
+            "Todos los datos sensibles se almacenan cifrados.",
+            "Los logs de auditoría registran cambios relevantes y accesos con usuario, fecha y acción.",
+            "Se cuenta con controles de rate limiting y monitoreo de actividad sospechosa."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US06",
+          "title": "Cumplimiento legal y de compliance",
+          "description": "Como responsable de compliance, quiero que el proceso de onboarding cumpla con toda la normativa vigente en materia de identificación y prevención de lavado de dinero, para evitar sanciones regulatorias.",
+          "acceptance_criteria": [
+            "El sistema debe validar, previo a la aprobación, los datos del usuario en listas restrictivas (por ejemplo listas de sanciones).",
+            "El sistema permite adjuntar comprobantes/registros de validaciones regulatorias realizadas.",
+            "Se generan alertas y se bloquean procesos en caso de detectar coincidencias con listas restrictivas.",
+            "Se mantiene un histórico auditable de las acciones relacionadas con cada onboarding."
+          ],
+          "priority": "high"
+        }
+      ],
+      "open_questions": [
+        "¿Qué proveedores externos de validación de identidad y listas restrictivas se integrarán inicialmente?",
+        "¿Cuáles son los requerimientos de retención y eliminación de datos según legislación vigente?",
+        "¿Existe una regulación particular para el onboarding digital que debamos considerar aparte de la Ley de Protección de Datos y normativas sobre KYC/AML?",
+        "¿Se requerirá integración con otros sistemas internos además de los mencionados (por ejemplo, core bancario, CRM)?",
+        "¿Qué idiomas y nivel de accesibilidad debe tener la interfaz web?",
+        "¿Qué sucede en caso de que un usuario falle reiteradas veces la validación de identidad?"
+      ]
+    },
+    "backend_spec": {
+      "architecture": "Arquitectura en capas utilizando un enfoque RESTful separado por responsabilidades: (1) Controladores HTTP (API Layer), (2) Servicios de negocio y fachada de integración (Service Layer), (3) Acceso a datos y mapeo ORM (Repository/Data Layer), y (4) Integraciones externas (Identidad, Listas restrictivas, Notificaciones). Uso de autenticación JWT/OAuth2 para usuarios finales e internos, almacenamiento cifrado y segregación de roles tanto en API como en base de datos. Implementación de API Gateway o Reverse Proxy para routing y rate limiting. Despliegue preparado para escalabilidad horizontal en contenedores (Kubernetes/Docker), logs centralizados y monitoreo en tiempo real.",
+      "domain_entities": [
+        "User (cliente final)",
+        "OnboardingProcess",
+        "Document",
+        "InternalUser (soporte, compliance, admin)",
+        "Event",
+        "AuditLog",
+        "Alert",
+        "SupportRequest",
+        "ExternalValidationResult"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/onboarding",
+          "purpose": "Iniciar un nuevo proceso de onboarding registrando los datos personales iniciales del usuario."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboarding/{onboardingId}",
+          "purpose": "Consultar información y estado actual del proceso de onboarding del usuario."
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/onboarding/{onboardingId}/personal-data",
+          "purpose": "Actualizar datos personales del usuario durante el proceso."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboarding/{onboardingId}/documents",
+          "purpose": "Cargar imágenes de documentos (anverso/reverso/selfie) para validación de identidad."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboarding/{onboardingId}/validate-identity",
+          "purpose": "Disparar validación remota de identidad mediante integración externa."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboarding/{onboardingId}/status",
+          "purpose": "Obtener el estado detallado del onboarding (incompleto, validando, aprobado, rechazado, bloqueado)."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboarding/{onboardingId}/events",
+          "purpose": "Registrar eventos relevantes del flujo (avance, errores, abandono, reintentos, etc) para auditoría."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboarding/{onboardingId}/support-requests",
+          "purpose": "Crear solicitud de soporte/ayuda y asociarla al proceso de onboarding."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboarding/{onboardingId}/support-requests",
+          "purpose": "Listar solicitudes de soporte realizadas por el usuario en su onboarding."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/internal/onboardings",
+          "purpose": "Lista todos los procesos de onboarding, con opciones de filtro por estado, período y parámetros avanzados (solo para usuarios internos con permisos)."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/internal/onboardings/{onboardingId}",
+          "purpose": "Consultar detalle completo del proceso de onboarding, incluyendo documentos y logs."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/internal/onboardings/{onboardingId}/alerts",
+          "purpose": "Generar o gestionar alertas internas de compliance por sospechas de fraude o incidentes."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/internal/alerts",
+          "purpose": "Listar y filtrar alertas de compliance y fraude, con gestión de estados."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/internal/onboardings/report",
+          "purpose": "Exportar reporte de onboardings por filtros definidos (.csv, .xlsx)."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/internal/onboardings/{onboardingId}/validate-restriction-lists",
+          "purpose": "Ejecutar validación en listas restrictivas antes de aprobación final."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/internal/audit-logs",
+          "purpose": "Consultar logs de auditoría de operaciones sobre onboardings, acceso interno, etc."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/users/authenticate",
+          "purpose": "Autenticación de usuario final para acceso seguro al proceso de onboarding."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/internal/authenticate",
+          "purpose": "Login de usuarios internos (admin, soporte, compliance) con distintos perfiles de acceso."
+        }
+      ],
+      "data_model": [
+        "User: id, name, surname, document_type, document_number, birthdate, email, password_hash, status, created_at, updated_at",
+        "OnboardingProcess: id, user_id, status, started_at, finished_at, last_step_completed, retry_count, restriction_list_checked, created_at, updated_at",
+        "Document: id, onboarding_id, type (front, back, selfie), file_url, hash, validation_result, created_at",
+        "InternalUser: id, username, role, email, password_hash, status, last_login, created_at, updated_at",
+        "Event: id, onboarding_id, type, description, created_at",
+        "AuditLog: id, entity_type, entity_id, action, performed_by, timestamp, detail",
+        "Alert: id, onboarding_id, type (fraude, documento, lista restrictiva), status, description, triggered_by, created_at, resolved_at",
+        "SupportRequest: id, onboarding_id, user_id, category, description, status, created_at, resolved_at",
+        "ExternalValidationResult: id, onboarding_id, provider, type (identity, restriction_list), status, detail, performed_at"
+      ],
+      "technical_risks": [
+        "Exposición o fuga de datos sensibles por mala gestión de claves, cifrado o acceso a la base de datos.",
+        "Errores de integración con servicios externos de identidad/fraude que generen falsos positivos o procesos bloqueados.",
+        "Problemas de escalabilidad ante picos de demanda, especialmente en validaciones masivas y almacenamiento de archivos multimedia.",
+        "Inadecuado control de acceso entre roles internos (soporte, compliance, admin) que permita exposición indebida de datos.",
+        "Cambios regulatorios que requieran modificar rápido el modelo de datos, reglas de validación o trazabilidad.",
+        "Persistencia/corrección incompleta de logs de auditoría o eventos que afecte el cumplimiento normativo.",
+        "Implementación deficiente de rate limiting, permitiendo ataques de denegación de servicio o brute force.",
+        "Uso incorrecto de protocolos inseguros o falta de verificación estricta en la capa de transporte (no HTTPS).",
+        "Procesos de eliminación/retención que incumplan legislación vigente o dejen abiertos riesgos legales."
+      ]
+    },
+    "frontend_spec": {
+      "app_structure": "Single Page Application (SPA) responsiva, organizada en dos grandes flujos: (a) flujo público/autogestionado de onboarding para clientes finales y (b) panel interno para equipos de compliance/soporte. Componentización alta: layouts diferenciados según perfil, navegación por wizard (onboarding) o dashboards (internos). Separación clara de roles y rutas seguras con manejo de autenticación/permiso. Enfoque mobile-first y accesible AA.",
+      "screens": [
+        {
+          "name": "Pantalla de bienvenida/Inicio",
+          "purpose": "Introducir al usuario al proceso de onboarding, explicar requisitos y dar inicio al registro.",
+          "main_components": [
+            "Header con logo",
+            "Breve descripción y beneficios",
+            "Stepper de avance general",
+            "Botón comenzar registro",
+            "Acceso a ayuda/FAQs y canales de contacto",
+            "Selector de idioma y contraste (accesibilidad)"
+          ]
+        },
+        {
+          "name": "Registro de datos personales",
+          "purpose": "Permitir que el usuario ingrese, revise y confirme sus datos personales iniciales.",
+          "main_components": [
+            "Formulario accesible (labels, ARIA) con validación en tiempo real",
+            "Campos: nombre, apellido, tipo y número de documento, fecha de nacimiento (selector accesible), email",
+            "Botón 'Continuar' habilitado solo si los campos requeridos están completos y válidos",
+            "Feedback inline y errores claros asociados a cada campo",
+            "Resumen de datos para confirmación antes de avanzar",
+            "Progress bar/stepper visible",
+            "Botón de volver y ayuda contextual"
+          ]
+        },
+        {
+          "name": "Carga y validación de documentos de identidad",
+          "purpose": "Capturar y cargar imágenes del documento y selfie, guiando al usuario en el proceso de validación remota.",
+          "main_components": [
+            "Instrucciones claras, imágenes de ejemplo",
+            "Selector o cámara embebida (opcional según dispositivo) para fotos de documento (frente/reverso) y selfie",
+            "Previsualización de imágenes cargadas",
+            "Botón para repetir carga en caso de error",
+            "Indicador de carga y validación en progreso",
+            "Feedback visual (success/error/pending) por cada documento/subida",
+            "Alertas explicativas ante errores (baja calidad, documentos ilegibles, selfie no detectada, etc.)",
+            "Botón siguiente y volver",
+            "Soporte rápido (live chat/acceso mail) fijo o flotante"
+          ]
+        },
+        {
+          "name": "Validación de identidad y espera de resultados",
+          "purpose": "Mostrar status actualizado del proceso de validación automática, informar resultados y posibles próximos pasos.",
+          "main_components": [
+            "Loader/progress bar animado",
+            "Mensajes amigables durante la espera",
+            "Feedback inmediato de aprobación, rechazo o solicitud de reintento",
+            "Detalle/causa en caso de error o rechazo, con instrucciones para resolver",
+            "Botón para reintentar en errores permitidos",
+            "Acceso a ayuda/contacto visible",
+            "Resumen del proceso y próximos pasos"
+          ]
+        },
+        {
+          "name": "Pantalla de confirmación/exito",
+          "purpose": "Notificar al usuario la aprobación de su onboarding y qué acciones debe realizar a continuación.",
+          "main_components": [
+            "Ícono/ilustración de éxito",
+            "Mensaje de bienvenida y resumen próximo paso (ej: alta de cuenta, setear password, etc.)",
+            "Botón para continuar a la plataforma final o ver documentos",
+            "Opciones para descargar comprobante/recibo",
+            "Acceso a contacto/soporte",
+            "Encuesta breve de experiencia opcional"
+          ]
+        },
+        {
+          "name": "Pantalla de error/abandono/procesos bloqueados",
+          "purpose": "Gestionar casos donde el usuario abandona, es bloqueado o se producen errores graves.",
+          "main_components": [
+            "Mensaje de error claro y empático",
+            "Detalle de causa (bloqueo, time-out, fraude, etc.)",
+            "Botón reintentar (si aplica) o volver al inicio",
+            "Acceso inmediato a canales de soporte",
+            "Información sobre registro para retomar proceso"
+          ]
+        },
+        {
+          "name": "Panel de seguimiento usuario",
+          "purpose": "Permitir que usuarios que abandonaron o tienen el proceso en pausa retomen desde el paso donde quedaron.",
+          "main_components": [
+            "Resumen de progreso del onboarding (steps, porcentajes, fecha de inicio)",
+            "Botón 'continuar' en último paso disponible",
+            "Historial de acciones y mensajes automáticos del sistema",
+            "Gestión de soporte (ver y crear solicitudes)",
+            "Acceso a cierre de sesión y ayuda"
+          ]
+        },
+        {
+          "name": "Panel interno - Dashboard de onboarding",
+          "purpose": "Proveer a equipos internos (compliance, soporte, admin) de una vista general para monitoreo y gestión masiva.",
+          "main_components": [
+            "Tabla dinámica de procesos de onboarding (buscador, filtros por estado, fechas, usuario)",
+            "Indicadores agregados (onboardings pendientes, aprobados, rechazados, alertas, promedio de tiempo, etc.)",
+            "Links a detalles de cada proceso",
+            "Botón de descarga/exportación (.csv/.xlsx)",
+            "Menú lateral de navegación (alerts, logs, configuraciones)",
+            "Segregación por perfil y permisos",
+            "Acceso rápido a ayuda/documentación"
+          ]
+        },
+        {
+          "name": "Detalle de proceso de onboarding (usuario interno)",
+          "purpose": "Permitir a usuarios autorizados visualizar en profundidad el proceso de un cliente específico.",
+          "main_components": [
+            "Resumen de datos personales (readonly)",
+            "Historial de eventos y logs (tabla/audit)",
+            "Galería de documentos cargados y validaciones automáticas",
+            "Visualización del estado actual y timeline del proceso",
+            "Botones para acciones internas (cambiar estado, cargar comprobantes, bloquear/alertar, dejar comentarios de cumplimiento)",
+            "Gestión de alertas y restricciones",
+            "Exportación de reporte/detalle",
+            "Back a dashboard/lista de onboardings"
+          ]
+        },
+        {
+          "name": "Pantalla de login y gestión de sesión (usuarios internos)",
+          "purpose": "Gestionar autenticación de usuarios internos, control de perfiles y recuperación de acceso.",
+          "main_components": [
+            "Formulario de login seguro con feedback de errores",
+            "MFA si aplica",
+            "Recuperar contraseña",
+            "Cambio de idioma y accesibilidad",
+            "Indicadores visuales de acceso restringido según perfil"
+          ]
+        }
+      ],
+      "state_management": "Uso de un store centralizado para gestión del flujo de onboardings, autenticación de usuarios, avances de pasos, caching de formularios parciales y estados de validación (ej: Redux, Zustand, Context API). Manejo persistente de progreso usando localStorage/sessionStorage para usuarios no autenticados; tokens JWT para sesiones autenticadas; manejo de loading, error, success states en todos los fetchs a API. Observabilidad de eventos vía hooks customizados y reporting de analytics/auditoría.",
+      "integration_points": [
+        "API backend RESTful (onboarding, documentos, validaciones, eventos, soporte, panel interno)",
+        "Servicios externos de validación de identidad/documentos/prueba de vida",
+        "Integración de listas restrictivas/AML (compliance)",
+        "Servicios de notificación/email en estados clave",
+        "Canales de soporte (chat embebido, ticketing email/web)",
+        "Exports de reportes (.csv/.xlsx) vía descargas seguras"
+      ],
+      "ux_risks": [
+        "Flujos largos o formularios extensos con falta de guardado intermedio generan abandonos",
+        "Mensajes técnicos o poco claros ante errores o rechazos, frustrando la experiencia",
+        "Falta de feedback visual inmediato en subidas de documentos (lentos, sin progresos visibles)",
+        "Procesos de validación automática no accesibles o sin alternativa (por ejemplo, prueba de vida no usable por personas con discapacidad)",
+        "No manejo del idioma/accesibilidad básico (lectores de pantalla, contraste, focus management)",
+        "Problemas en mobile por componentes no responsive o gestos mal interpretados en toma de fotos/subidas",
+        "Segregación inadecuada de roles/permisos internos exponiendo datos sensibles inadecuadamente",
+        "Recuperación deficiente del proceso (no permite retomar/seguir) ante cortes de sesión o abandono"
+      ]
+    },
+    "test_plan": {
+      "strategy": "Estrategia de pruebas centrada en Proof-of-Value (POV) y compliance, cubriendo paths críticos de negocio, edge cases de validación y pruebas de regresión clave. Se ejecutarán pruebas funcionales (flujos felices, de error y alternativos), pruebas no funcionales (performance, seguridad, accesibilidad básica, almacenamiento cifrado), y controles de integración frente a servicios externos y roles internos. Se incluyen criterios estrictos para asegurar cumplimiento normativo, unicidad de onboarding, manejo seguro de datos, trazabilidad y segregación de roles. Se automatizarán casos de regresión mínima y smoke tests tras cada despliegue. Los gates de release requerirán evidencia de cobertura para todos los paths del usuario final e interno y ausencia de blocking bugs críticos.",
+      "coverage": [
+        "Flujo completo de onboarding digital del cliente final (happy path).",
+        "Errores de validación en formularios y documentos.",
+        "Unicidad de usuario y control de onboarding duplicados.",
+        "Edge cases de validación de edad y documento.",
+        "Integración real con proveedor externo de validación de identidad/fraud",
+        "Soporte para abandono/retoma y canales de ayuda.",
+        "Panel interno de monitoreo (roles, filtros, auditoría, acciones).",
+        "Export de reportes y manejo de permisos.",
+        "Almacenamiento cifrado, logs de auditoría y alertas de fraude.",
+        "Validación en listas restrictivas y bloqueos automáticos.",
+        "Autenticación JWT/OAuth2 y segregación de acceso en frontend/backend.",
+        "Pruebas de performance (onboarding < 15 min y carga de documentos rápida).",
+        "Accesibilidad (mínimo AA) y soporte mobile.",
+        "Pruebas de seguridad: HTTPS, manejo de datos sensibles e inyecciones.",
+        "Regresión básica: onboarding, validación, login y panel interno."
+      ],
+      "test_cases": [
+        {
+          "id": "TC01",
+          "title": "Onboarding Happy Path Cliente Final",
+          "objective": "Verificar que un usuario mayor de edad puede completar el flujo de onboarding exitosamente con datos válidos.",
+          "preconditions": [
+            "No existe registro previo con el mismo documento.",
+            "El servicio de validación externo está operativo."
+          ],
+          "expected_result": "El onboarding se completa en menos de 15 minutos, usuario recibe confirmación de alta y los datos son visibles en el panel interno."
+        },
+        {
+          "id": "TC02",
+          "title": "Validación de Campo Obligatorio en Registro",
+          "objective": "Asegurar que no es posible avanzar con datos incompletos en formulario inicial.",
+          "preconditions": [
+            "Usuario en pantalla de registro."
+          ],
+          "expected_result": "El botón 'Continuar' está deshabilitado y aparecen mensajes de error si falta algún campo obligatorio."
+        },
+        {
+          "id": "TC03",
+          "title": "Control de Edad Mínima",
+          "objective": "Validar que no puedan avanzar usuarios menores de 18 años.",
+          "preconditions": [
+            "Usuario ingresa fecha de nacimiento menor a 18 años."
+          ],
+          "expected_result": "La aplicación no permite continuar y muestra error indicando restricción de edad."
+        },
+        {
+          "id": "TC04",
+          "title": "Unicidad de Documento",
+          "objective": "Verificar que el sistema rechaza intentos de registro con tipo y número de documento ya enrolados.",
+          "preconditions": [
+            "Ya existe un onboarding con ese tipo y número de documento."
+          ],
+          "expected_result": "El sistema notifica que ya existe un proceso con ese documento y no permite avanzar."
+        },
+        {
+          "id": "TC05",
+          "title": "Carga y Validación de Documentos Edge Case - Foto Borrosa",
+          "objective": "Asegurar manejo de error cuando la imagen cargada es ilegible.",
+          "preconditions": [
+            "Usuario carga imagen de documento ilegible."
+          ],
+          "expected_result": "El sistema detecta el problema y pide recargar, indicando el error específico."
+        },
+        {
+          "id": "TC06",
+          "title": "Integración con Servicio Externo Caído",
+          "objective": "Verificar el manejo de error y feedback al usuario ante falla de integración durante la validación de identidad.",
+          "preconditions": [
+            "El servicio de validación externo está caído/sin respuesta."
+          ],
+          "expected_result": "El onboarding muestra mensaje de error técnico y permite reintentar o contactar soporte."
+        },
+        {
+          "id": "TC07",
+          "title": "Intentos Repetidos de Validación Fallida",
+          "objective": "Verificar el bloqueo o alerta tras x intentos fallidos de validación biométrica.",
+          "preconditions": [
+            "Usuario falla la validación 3 veces consecutivas."
+          ],
+          "expected_result": "El proceso se bloquea y se dispara una alerta interna por posible fraude."
+        },
+        {
+          "id": "TC08",
+          "title": "Abandono y Retoma del Proceso",
+          "objective": "Confirmar que el usuario puede abandonar y luego continuar desde donde dejó el onboarding.",
+          "preconditions": [
+            "Usuario abandona antes de subir documentos.",
+            "El progreso es guardado automáticamente."
+          ],
+          "expected_result": "Al volver, el usuario retoma desde el último paso guardado, sin perdida de datos previos."
+        },
+        {
+          "id": "TC09",
+          "title": "Comunicación Segura en Transmisión",
+          "objective": "Asegurar que todas las requests del frontend al backend usan HTTPS.",
+          "preconditions": [
+            "Monitor de red/inspección con HTTP y HTTPS."
+          ],
+          "expected_result": "No existen requests en texto plano; todo tráfico es cifrado mediante HTTPS."
+        },
+        {
+          "id": "TC10",
+          "title": "Panel Interno - Filtros Funcionales",
+          "objective": "Verificar que usuarios internos pueden filtrar onboardings por estado, fechas y otros parámetros.",
+          "preconditions": [
+            "Usuario interno autenticado con permisos de consulta."
+          ],
+          "expected_result": "Todos los filtros funcionan correctamente y la lista se actualiza con los criterios seleccionados."
+        },
+        {
+          "id": "TC11",
+          "title": "Restricción de Acceso por Rol",
+          "objective": "Validar que cada perfil interno (soporte, compliance, admin) solo accede a datos permitidos.",
+          "preconditions": [
+            "Usuarios internos con diferentes roles existen."
+          ],
+          "expected_result": "Cada rol solo ve y puede accionar sobre lo que su perfil permite; accesos indebidos son bloqueados."
+        },
+        {
+          "id": "TC12",
+          "title": "Almacenamiento Cifrado de Datos Sensibles",
+          "objective": "Asegurar que información crítica (documentos, usuario) se almacena cifrada en base de datos.",
+          "preconditions": [
+            "Base de datos accesible por auditor de seguridad."
+          ],
+          "expected_result": "No es posible leer datos sensibles en texto plano desde la base; la información está cifrada."
+        },
+        {
+          "id": "TC13",
+          "title": "Validación en Listas Restrictivas",
+          "objective": "Verificar que el sistema consulta listas restrictivas y bloquea automáticamente onboardings con coincidencias.",
+          "preconditions": [
+            "Usuario ingresado está incluido en lista restrictiva."
+          ],
+          "expected_result": "El proceso no avanza, se genera una alerta de compliance y se mantiene registro auditable."
+        },
+        {
+          "id": "TC14",
+          "title": "Performance de Carga de Documentos",
+          "objective": "Confirmar que la carga y validación de documentos no supera 60 segundos en conditions normales.",
+          "preconditions": [
+            "Usuario en paso de carga de documentos.",
+            "Conexión a internet estable."
+          ],
+          "expected_result": "La operación se completa en menos de 60 segundos, con feedback fluido; tiempo total onboarding < 15 min."
+        },
+        {
+          "id": "TC15",
+          "title": "Regresión - Login y Navegación Básica de Panel Interno",
+          "objective": "Validar que login, cambio de idioma, navegación lateral y export de reportes funciona tras actualizaciones.",
+          "preconditions": [
+            "Despliegue reciente de cambios.",
+            "Uno o más usuarios internos activos."
+          ],
+          "expected_result": "Login, cambio de idioma, navegación por menú y exportación de reportes funcionan sin errores."
+        },
+        {
+          "id": "TC16",
+          "title": "Accesibilidad Mínima (AA) en Onboarding",
+          "objective": "Verificar contraste, navegación por teclado y etiquetas ARIA en los formularios críticos.",
+          "preconditions": [
+            "Herramientas de verificación de accesibilidad habilitadas."
+          ],
+          "expected_result": "El usuario puede completar el flujo usando solo teclado; contrastes y etiquetas cumplen AA."
+        },
+        {
+          "id": "TC17",
+          "title": "Edge Case - Archivo Adjunto de Formato No Permitido",
+          "objective": "Asegurar que solo archivos válidos (jpg, png, pdf) sean aceptados en uploads de documentos.",
+          "preconditions": [
+            "Usuario en paso de carga de documentos."
+          ],
+          "expected_result": "El sistema rechaza el archivo no soportado y muestra mensaje de error claro."
+        }
+      ],
+      "release_gates": [
+        "Cobertura del 100% de criterios de aceptación en casos críticos (US01-US06).",
+        "Ejecución completa de los 17 test cases definidos, sin blocking bugs.",
+        "Pruebas de integración completas con servicios externos (identidad, listas restrictivas).",
+        "Validación formal de cumplimiento legal y de seguridad (auditoría storage, HTTPS, acceso).",
+        "Regresión mínima completa sobre onboarding, validación documental y login interno.",
+        "Evidencia documentada de segregación efectiva de permisos y trazabilidad.",
+        "No existen findings críticos pendientes de performance (<15min), seguridad ni compliance."
+      ]
+    },
+    "release_bundle": {
+      "branch_strategy": "Se utilizará una estrategia Git Flow: \n- Rama principal (`main`) para releases estables.\n- Rama de desarrollo (`develop`) para integración continua de features.\n- Feature branches (`feature/onboarding-...`) para cada historia de usuario o módulo.\n- Hotfix branches (`hotfix/`) para corrección de errores críticos.\n- Release branches (`release/`) para estabilización y QA antes del merge a `main`.\n- Pull Requests obligatorios desde `release/` o `hotfix/` hacia `main` con revisión obligatoria.\nEl versionado será semántico (SemVer).",
+      "commit_plan": [
+        "feat(onboarding): add personal data registration form and validation [US01]",
+        "feat(onboarding): implement uniqueness check for document type and number [US01]",
+        "feat(onboarding): integrate remote identity validation service [US02]",
+        "feat(onboarding): add document upload and selfie capture with preview [US02]",
+        "feat(onboarding): provide real-time feedback for validation results [US02]",
+        "feat(support): implement help/contact channels and support request tracking [US03]",
+        "feat(onboarding): persist onboarding progress and enable resume [US03]",
+        "feat(panel-internal): implement compliance/support dashboard with filters and reports [US04]",
+        "feat(panel-internal): role-based access restriction to internal data [US04]",
+        "feat(api): secure endpoints with JWT/OAuth2 and add audit logs [US05]",
+        "feat(api): encrypt sensitive onboarding data in data store [US05]",
+        "feat(compliance): integrate restriction lists and regulatory checks [US06]",
+        "feat(compliance): generate and manage fraud/restriction alerts [US06]",
+        "fix(onboarding): handle repeated failed identity validations (block and alert) [US07]",
+        "test(onboarding): add coverage for all critical and edge onboarding flows",
+        "chore(release): prepare release candidate and update documentation/readme"
+      ],
+      "pull_request_title": "Release: Implementación sistema de Onboarding Digital (v1.0.0)",
+      "release_notes": [
+        "Se habilita el flujo completo de onboarding digital de clientes finales integrando validación de identidad remota, almacenamiento cifrado y panel de gestión interno según compliance.",
+        "Integración con proveedores externos para validación de identidad y listas restrictivas.",
+        "Gestión avanzada de soporte y retoma de procesos por parte de los usuarios.",
+        "Implementación de panel de monitoreo interno con segregación de roles y exportación de reportes.",
+        "Cumplimiento de requerimientos legales sobre identificación, prevención de fraude y protección de datos.",
+        "Pruebas automatizadas cubriendo casos críticos, edge cases, integración y regresión.",
+        "Todos los endpoints y comunicaciones utilizan HTTPS y autenticación robusta.",
+        "Se agregan mecanismos automáticos de alertas y bloqueo ante eventos sospechosos o múltiples intentos fallidos."
+      ],
+      "checklist": [
+        "✅ Todos los features y criterios de aceptación de US01-US06 implementados.",
+        "✅ Ejecución completa del test plan y resultados sin bugs bloqueantes.",
+        "✅ Validaciones exitosas de integración con servicios externos (identidad, restricciones).",
+        "✅ Almacenamiento cifrado y segregación de roles revisada.",
+        "✅ Reportes de auditoría e historial de eventos funcionan según compliance.",
+        "✅ Validación de performance: onboarding < 15 minutos y carga documental rápida.",
+        "✅ Accesibilidad mínima AA y mobile-first en todos los flujos críticos.",
+        "✅ Evidencia de cumplimiento legal/regulatorio disponible.",
+        "✅ Documentación técnica y de usuario interno actualizada.",
+        "✅ Release candidate mergeado en `main` solo tras aprobación de PR y passing CI/CD."
+      ]
+    }
+  },
+  "audit_log": [
+    "Proyecto creado",
+    "Product Owner completado",
+    "Analista Funcional completado",
+    "Backend Developer completado",
+    "Frontend Developer completado",
+    "QA Analyst completado",
+    "Commit Manager completado",
+    "Pipeline completado"
+  ]
+}

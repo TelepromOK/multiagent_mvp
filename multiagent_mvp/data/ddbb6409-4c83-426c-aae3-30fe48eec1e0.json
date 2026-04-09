@@ -1,0 +1,1245 @@
+{
+  "project_id": "ddbb6409-4c83-426c-aae3-30fe48eec1e0",
+  "title": "Onboarding digital de clientes",
+  "goal": "Construir un sistema de onboarding digital para clientes con backend API y frontend web",
+  "current_phase": "completed",
+  "constraints": [],
+  "context": {},
+  "artifacts": {
+    "product_brief": {
+      "product_summary": "Desarrollar una solución de onboarding digital de clientes compuesta por backend API y frontend web que permita registrar, validar y activar nuevos clientes de forma simple, segura y trazable. El producto debe reducir la fricción del alta, acortar tiempos de activación y mejorar la conversión del proceso end-to-end, habilitando además integraciones futuras con sistemas internos y terceros.",
+      "business_goals": [
+        "Reducir el tiempo promedio de alta de clientes desde el inicio del proceso hasta la activación.",
+        "Aumentar la tasa de conversión de usuarios que completan exitosamente el onboarding digital.",
+        "Disminuir la carga operativa manual asociada a validaciones, seguimiento y alta de clientes.",
+        "Garantizar un proceso seguro, auditable y escalable para el registro y activación de clientes.",
+        "Establecer una base tecnológica reutilizable vía API para futuras integraciones y canales digitales."
+      ],
+      "personas": [
+        "Cliente nuevo que desea registrarse y completar su onboarding de forma 100% digital.",
+        "Equipo de operaciones que necesita visibilidad del estado del onboarding y gestión de excepciones.",
+        "Equipo comercial o de atención que acompaña a clientes con onboarding incompleto o bloqueado.",
+        "Administrador interno que requiere trazabilidad, auditoría y control sobre el proceso.",
+        "Equipos técnicos internos o partners que consumirán la API para integrar el onboarding con otros canales."
+      ],
+      "epics": [
+        "Registro y creación de cuenta de cliente con captura inicial de datos.",
+        "Frontend web de onboarding con flujo guiado, validaciones y guardado de progreso.",
+        "Backend API para gestión de clientes, estados de onboarding y exposición de servicios integrables.",
+        "Validación de identidad, datos obligatorios y reglas de elegibilidad del cliente.",
+        "Gestión documental y carga de evidencia requerida para completar el onboarding.",
+        "Motor de estados y seguimiento del proceso de onboarding con trazabilidad end-to-end.",
+        "Notificaciones y recordatorios para impulsar la finalización del onboarding.",
+        "Panel interno para monitoreo, revisión de casos y resolución de excepciones.",
+        "Seguridad, auditoría y cumplimiento para proteger datos sensibles del cliente.",
+        "Métricas, analítica y reporting para medir conversión, tiempos y puntos de abandono."
+      ],
+      "risks": [
+        "Ambigüedad en requisitos regulatorios o de compliance que impacten el diseño del flujo.",
+        "Alta fricción en la experiencia de usuario que genere abandono temprano del onboarding.",
+        "Dependencia de integraciones externas para validación de identidad o datos críticos.",
+        "Manejo inadecuado de datos personales sensibles con riesgo de seguridad o incumplimiento normativo.",
+        "Falta de definición de reglas de negocio y criterios de activación del cliente.",
+        "Complejidad operativa en la gestión de excepciones si el proceso automatizado no contempla casos especiales.",
+        "Baja calidad de datos ingresados por usuarios si no existen validaciones suficientes.",
+        "Escalabilidad limitada del backend API ante picos de demanda o crecimiento del canal digital."
+      ]
+    },
+    "requirements_spec": {
+      "scope": "Solución de onboarding digital de clientes compuesta por frontend web y backend API para registrar, validar, documentar, monitorear y activar nuevos clientes de forma segura, auditable y trazable. Incluye captura inicial de datos, guardado de progreso, validaciones de identidad y elegibilidad, carga documental, motor de estados, notificaciones, panel interno de seguimiento y métricas operativas. El alcance contempla diseño orientado a integraciones futuras con sistemas internos y terceros vía API.",
+      "business_rules": [
+        "Todo onboarding debe iniciar con la creación de un registro único de cliente potencial y un identificador único de proceso.",
+        "No se podrá activar un cliente si no se completaron todos los datos obligatorios definidos para el tipo de cliente.",
+        "No se podrá activar un cliente si faltan documentos obligatorios o si alguno de ellos se encuentra en estado rechazado.",
+        "Cada etapa del onboarding deberá registrar estado, fecha/hora, origen del cambio y usuario o sistema que realizó la acción.",
+        "El proceso deberá permitir guardar progreso parcial y retomar posteriormente sin pérdida de información previamente confirmada.",
+        "Los datos ingresados por el cliente deberán validarse en frontend y backend antes de ser persistidos como válidos.",
+        "Las validaciones de elegibilidad e identidad podrán devolver al menos los estados: aprobado, observado, rechazado o pendiente.",
+        "Un onboarding con validaciones en estado pendiente no podrá pasar a activado hasta obtener resolución final.",
+        "Los casos con validación observada o rechazada deberán quedar visibles en el panel interno para gestión de excepciones.",
+        "El sistema deberá evitar la creación de onboardings duplicados para un mismo identificador de cliente según la regla de unicidad definida.",
+        "Toda modificación manual realizada por usuarios internos sobre datos, estados o decisiones deberá quedar auditada.",
+        "La información sensible del cliente deberá almacenarse y transmitirse con mecanismos de seguridad acordes a políticas de cumplimiento.",
+        "Las APIs deberán exponer estados de onboarding de forma estandarizada para facilitar integraciones futuras.",
+        "Las notificaciones al cliente deberán dispararse por eventos relevantes del proceso, como inicio, abandono, observación, aprobación o activación.",
+        "El proceso deberá contemplar gestión de expiración o vencimiento de solicitudes incompletas según política a definir.",
+        "La activación del cliente solo podrá ejecutarse cuando el onboarding se encuentre en estado final elegible para activación.",
+        "El panel interno deberá permitir consultar el historial end-to-end de un onboarding individual.",
+        "Las métricas del proceso deberán registrar inicio, avance por etapa, abandono, resolución de excepciones y activación.",
+        "El sistema deberá soportar separación de perfiles y permisos entre cliente, operador, comercial y administrador interno.",
+        "Toda integración externa crítica deberá manejar errores, timeouts y reintentos sin perder trazabilidad del proceso."
+      ],
+      "user_stories": [
+        {
+          "id": "US-001",
+          "title": "Crear onboarding de nuevo cliente",
+          "description": "Como cliente nuevo, quiero iniciar mi registro digital ingresando mis datos iniciales para comenzar el proceso de onboarding.",
+          "acceptance_criteria": [
+            "Dado un usuario sin onboarding previo válido, cuando completa los datos iniciales obligatorios y confirma el inicio, entonces el sistema crea un registro único de onboarding con identificador único.",
+            "Dado un inicio exitoso, cuando se crea el onboarding, entonces el sistema asigna un estado inicial visible para seguimiento.",
+            "Dado un intento de alta con datos obligatorios incompletos, cuando el usuario intenta continuar, entonces el sistema informa los campos faltantes y no crea el onboarding.",
+            "Dado un intento con un identificador ya existente según regla de unicidad, cuando el usuario intenta iniciar un nuevo proceso, entonces el sistema evita el duplicado y muestra el resultado esperado según política definida."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-002",
+          "title": "Completar flujo web guiado",
+          "description": "Como cliente nuevo, quiero avanzar por un flujo web guiado con validaciones claras para completar mi onboarding de forma simple.",
+          "acceptance_criteria": [
+            "Dado un onboarding iniciado, cuando el cliente accede al frontend web, entonces visualiza las etapas del proceso y su progreso.",
+            "Dado un campo con formato inválido, cuando el usuario abandona el campo o intenta avanzar, entonces el frontend muestra un mensaje de validación comprensible.",
+            "Dado que una etapa tiene errores de validación, cuando el usuario intenta continuar, entonces el sistema bloquea el avance hasta corregirlos.",
+            "Dado que una etapa fue completada correctamente, cuando el usuario avanza, entonces el sistema conserva los datos ingresados y actualiza el progreso."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-003",
+          "title": "Guardar progreso y retomar luego",
+          "description": "Como cliente nuevo, quiero guardar mi avance para retomar el onboarding más tarde sin perder información.",
+          "acceptance_criteria": [
+            "Dado un onboarding en curso, cuando el cliente guarda o abandona una etapa ya completada parcialmente, entonces el sistema persiste el progreso disponible.",
+            "Dado un onboarding con progreso guardado, cuando el cliente reingresa al flujo, entonces el sistema muestra la última etapa pendiente y los datos previamente guardados.",
+            "Dado un dato ya persistido, cuando el cliente retoma el proceso, entonces no debe volver a cargar información ya confirmada salvo que decida editarla.",
+            "Dado un guardado exitoso, cuando se consulta el historial del proceso, entonces queda trazabilidad de la actualización."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-004",
+          "title": "Validar datos obligatorios y formatos",
+          "description": "Como sistema, quiero validar completitud y formato de los datos ingresados para mejorar la calidad de la información del onboarding.",
+          "acceptance_criteria": [
+            "Dado un envío de datos al backend, cuando faltan campos obligatorios, entonces la API responde con error validable indicando los campos faltantes.",
+            "Dado un envío de datos con formato inválido, cuando la API procesa la solicitud, entonces rechaza la operación y detalla las validaciones incumplidas.",
+            "Dado un envío de datos válidos, cuando la API los procesa, entonces persiste la información y devuelve confirmación.",
+            "Dado que frontend validó exitosamente, cuando backend detecta una inconsistencia adicional, entonces prevalece la validación de backend y se informa el error."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-005",
+          "title": "Validar identidad del cliente",
+          "description": "Como organización, quiero validar la identidad del cliente mediante reglas y/o integraciones externas para reducir fraude y errores de alta.",
+          "acceptance_criteria": [
+            "Dado un onboarding con datos mínimos requeridos, cuando se dispara la validación de identidad, entonces el sistema registra la solicitud y su resultado.",
+            "Dado un resultado de validación aprobado, cuando se actualiza el proceso, entonces el onboarding puede continuar a la siguiente condición aplicable.",
+            "Dado un resultado observado o rechazado, cuando se recibe la respuesta, entonces el onboarding cambia a un estado gestionable y visible en el panel interno.",
+            "Dado un error técnico o timeout del servicio externo, cuando falla la validación, entonces el sistema registra el incidente, conserva trazabilidad y deja el caso en estado pendiente o de excepción según definición."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-006",
+          "title": "Evaluar elegibilidad del cliente",
+          "description": "Como organización, quiero aplicar reglas de elegibilidad para determinar si un cliente puede avanzar hacia la activación.",
+          "acceptance_criteria": [
+            "Dado un onboarding con información suficiente, cuando se ejecutan las reglas de elegibilidad, entonces el sistema genera un resultado trazable.",
+            "Dado un resultado aprobado, cuando no existen otros bloqueos, entonces el proceso puede continuar hacia la activación.",
+            "Dado un resultado observado o rechazado, cuando se resuelve la evaluación, entonces el onboarding no puede activarse automáticamente.",
+            "Dado una actualización de datos relevantes, cuando corresponde revaluar la elegibilidad, entonces el sistema permite reejecutar la validación según permisos y reglas definidas."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-007",
+          "title": "Cargar documentación requerida",
+          "description": "Como cliente nuevo, quiero adjuntar los documentos solicitados para cumplir con los requisitos del onboarding.",
+          "acceptance_criteria": [
+            "Dado un onboarding en curso, cuando el cliente accede a la sección documental, entonces visualiza la lista de documentos obligatorios y opcionales aplicables.",
+            "Dado un archivo válido, cuando el cliente lo carga, entonces el sistema lo asocia al onboarding y registra su estado inicial.",
+            "Dado un archivo no permitido por tipo, tamaño o formato, cuando el cliente intenta cargarlo, entonces el sistema rechaza la carga e informa el motivo.",
+            "Dado que falta al menos un documento obligatorio, cuando el cliente intenta finalizar el onboarding, entonces el sistema bloquea el avance final."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-008",
+          "title": "Revisar y resolver documentación observada",
+          "description": "Como equipo de operaciones, quiero revisar documentos cargados y marcarlos como aprobados, observados o rechazados para completar el proceso con control.",
+          "acceptance_criteria": [
+            "Dado un documento cargado, cuando un operador autorizado lo revisa, entonces puede asignarle un estado de aprobación, observación o rechazo.",
+            "Dado un documento observado o rechazado, cuando el operador registra el resultado, entonces el sistema exige un motivo asociado y lo deja trazado.",
+            "Dado un documento observado o rechazado, cuando el cliente consulta su onboarding, entonces visualiza que debe reemplazar o corregir la evidencia.",
+            "Dado todos los documentos obligatorios aprobados, cuando se consulta el estado documental del onboarding, entonces el requisito documental figura como cumplido."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-009",
+          "title": "Gestionar motor de estados del onboarding",
+          "description": "Como administrador interno, quiero que el proceso tenga estados definidos y transiciones controladas para asegurar trazabilidad y gobernanza.",
+          "acceptance_criteria": [
+            "Dado un onboarding, cuando ocurre un evento de negocio relevante, entonces el sistema actualiza el estado según la transición permitida.",
+            "Dado un intento de transición no válida, cuando un usuario o sistema intenta aplicarla, entonces el sistema la rechaza y registra el intento.",
+            "Dado un cambio de estado exitoso, cuando se consulta el historial, entonces se visualizan estado anterior, estado nuevo, fecha/hora y actor.",
+            "Dado un onboarding activado o cerrado, cuando se intenta editar una etapa no permitida, entonces el sistema bloquea la operación según reglas."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-010",
+          "title": "Activar cliente al completar condiciones",
+          "description": "Como organización, quiero activar automáticamente o asistidamente a un cliente cuando cumpla todas las condiciones del onboarding.",
+          "acceptance_criteria": [
+            "Dado un onboarding con datos completos, validaciones aprobadas y documentación obligatoria aprobada, cuando se ejecuta la activación, entonces el cliente pasa a estado activado.",
+            "Dado un onboarding con alguna condición pendiente, observada o rechazada, cuando se intenta activar, entonces el sistema bloquea la activación e informa los motivos.",
+            "Dado una activación exitosa, cuando finaliza el proceso, entonces el sistema registra fecha/hora, actor u origen de activación y estado final.",
+            "Dado una activación exitosa, cuando corresponda integración con otros sistemas, entonces la API expone o dispara el evento de activación de forma trazable."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-011",
+          "title": "Enviar notificaciones y recordatorios",
+          "description": "Como organización, quiero enviar notificaciones al cliente sobre hitos y pendientes para aumentar la finalización del onboarding.",
+          "acceptance_criteria": [
+            "Dado un onboarding iniciado, cuando ocurre un evento configurado, entonces el sistema genera una notificación correspondiente.",
+            "Dado un onboarding incompleto sin actividad durante el plazo definido, cuando se cumple la condición de recordatorio, entonces el sistema envía una comunicación de seguimiento.",
+            "Dado un caso observado o rechazado, cuando se registra la observación, entonces el cliente recibe una notificación con el pendiente a resolver.",
+            "Dado una activación exitosa, cuando finaliza el onboarding, entonces el cliente recibe confirmación del alta."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-012",
+          "title": "Monitorear onboardings desde panel interno",
+          "description": "Como equipo de operaciones, quiero visualizar y buscar onboardings por estado y atributos clave para gestionar el proceso eficientemente.",
+          "acceptance_criteria": [
+            "Dado un usuario interno autorizado, cuando accede al panel, entonces puede visualizar el listado de onboardings con su estado actual.",
+            "Dado el listado de onboardings, cuando el usuario aplica filtros por estado, fechas o identificadores, entonces el sistema devuelve los resultados coincidentes.",
+            "Dado un onboarding específico, cuando el usuario abre el detalle, entonces visualiza datos relevantes, validaciones, documentos e historial.",
+            "Dado un cambio de estado o revisión, cuando se actualiza un caso, entonces el panel refleja la información actualizada en un tiempo razonable definido."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-013",
+          "title": "Gestionar excepciones operativas",
+          "description": "Como equipo de operaciones, quiero intervenir casos bloqueados, observados o con error para resolver excepciones y destrabar altas.",
+          "acceptance_criteria": [
+            "Dado un onboarding con estado de excepción, cuando un operador autorizado accede al caso, entonces puede registrar acciones de gestión.",
+            "Dado una intervención manual sobre datos o decisiones, cuando el operador guarda cambios, entonces el sistema exige trazabilidad del motivo y actor.",
+            "Dado una excepción resuelta, cuando se cumplen las condiciones de continuidad, entonces el onboarding puede retomar el flujo correspondiente.",
+            "Dado un usuario sin permisos suficientes, cuando intenta intervenir manualmente un caso, entonces el sistema rechaza la acción."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-014",
+          "title": "Auditar acciones y cambios",
+          "description": "Como administrador interno, quiero contar con auditoría completa de acciones, datos y decisiones para cumplimiento y trazabilidad.",
+          "acceptance_criteria": [
+            "Dado cualquier acción relevante sobre un onboarding, cuando se ejecuta, entonces el sistema registra evento, fecha/hora, actor, origen y resultado.",
+            "Dado una modificación de datos sensibles o estado, cuando se consulta la auditoría, entonces se visualiza el cambio realizado y su contexto.",
+            "Dado una búsqueda de auditoría sobre un onboarding, cuando el administrador consulta el historial, entonces obtiene la secuencia cronológica de eventos.",
+            "Dado un usuario no autorizado, cuando intenta acceder a datos de auditoría, entonces el sistema deniega el acceso."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-015",
+          "title": "Proteger datos y controlar accesos",
+          "description": "Como organización, quiero aplicar seguridad y permisos por rol para proteger datos personales y operaciones sensibles del onboarding.",
+          "acceptance_criteria": [
+            "Dado un usuario autenticado, cuando accede a una funcionalidad, entonces el sistema valida sus permisos según rol.",
+            "Dado un usuario sin autorización para ver datos sensibles, cuando intenta acceder a ellos, entonces el sistema oculta o deniega la información.",
+            "Dado una operación sensible como activación o intervención manual, cuando se ejecuta, entonces solo usuarios o sistemas autorizados pueden realizarla.",
+            "Dado transmisión o almacenamiento de datos sensibles, cuando el sistema procesa la información, entonces aplica mecanismos de protección definidos por política."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-016",
+          "title": "Exponer API de onboarding para integraciones",
+          "description": "Como equipo técnico interno o partner, quiero consumir APIs de onboarding para crear, consultar y actualizar procesos desde otros canales.",
+          "acceptance_criteria": [
+            "Dado un consumidor autorizado, cuando invoca la API de creación de onboarding con datos válidos, entonces obtiene una respuesta exitosa con identificador del proceso.",
+            "Dado un consumidor autorizado, cuando consulta un onboarding existente, entonces la API devuelve su estado actual y datos permitidos.",
+            "Dado una solicitud inválida o no autorizada, cuando la API la procesa, entonces responde con código y mensaje de error consistentes.",
+            "Dado cambios de estado relevantes, cuando corresponda, entonces la API permite su consulta o notificación con modelo de datos estandarizado."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-017",
+          "title": "Medir conversión, tiempos y abandono",
+          "description": "Como administrador interno, quiero disponer de métricas del funnel de onboarding para identificar mejoras y controlar desempeño.",
+          "acceptance_criteria": [
+            "Dado onboardings en distintas etapas, cuando se registran eventos del proceso, entonces el sistema almacena datos necesarios para métricas de conversión.",
+            "Dado un período de análisis, cuando un usuario autorizado consulta métricas, entonces puede visualizar cantidad de iniciados, completados, activados y abandonados.",
+            "Dado el historial de estados, cuando se calculan tiempos, entonces el sistema permite medir duración por etapa y tiempo total hasta activación.",
+            "Dado puntos de caída en el proceso, cuando se analizan métricas, entonces pueden identificarse etapas con mayor abandono."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-018",
+          "title": "Manejar fallas de integraciones externas",
+          "description": "Como organización, quiero gestionar errores de integraciones críticas sin perder continuidad ni trazabilidad del onboarding.",
+          "acceptance_criteria": [
+            "Dado una integración externa crítica, cuando ocurre timeout o error técnico, entonces el sistema registra el incidente con detalle suficiente para seguimiento.",
+            "Dado una falla temporal, cuando la política lo permita, entonces el sistema ejecuta reintentos controlados sin duplicar resultados de negocio.",
+            "Dado una falla no recuperable, cuando se agotan intentos o se detecta error definitivo, entonces el onboarding pasa a estado gestionable por operaciones.",
+            "Dado una recuperación posterior del servicio, cuando se reprocesa una validación pendiente, entonces el historial conserva tanto la falla inicial como la resolución."
+          ],
+          "priority": "medium"
+        }
+      ],
+      "open_questions": [
+        "¿Cuál es la definición exacta de cliente y qué tipos de cliente estarán incluidos en el onboarding inicial?",
+        "¿Qué conjunto de datos obligatorios debe solicitarse en cada etapa del proceso?",
+        "¿Cuál es la regla de unicidad para evitar onboardings duplicados: documento, email, teléfono, combinación de atributos u otra?",
+        "¿Qué proveedores o sistemas externos se utilizarán para validación de identidad y elegibilidad?",
+        "¿Qué documentos serán obligatorios y cuáles dependerán del tipo de cliente o producto?",
+        "¿Cuáles son los estados oficiales del motor de onboarding y sus transiciones permitidas?",
+        "¿La activación será automática, manual o mixta según resultado de validaciones?",
+        "¿Qué casos de excepción deben poder resolver operaciones de forma manual y con qué permisos?",
+        "¿Qué canales de notificación estarán habilitados: email, SMS, WhatsApp, push u otros?",
+        "¿Cuál es la política de expiración de onboardings incompletos y qué ocurre con los datos al vencer?",
+        "¿Qué requerimientos regulatorios y de compliance aplican al tratamiento de datos, documentación y auditoría?",
+        "¿Qué datos deben considerarse sensibles y qué políticas de enmascaramiento o retención aplican?",
+        "¿Qué SLA o tiempos objetivo se esperan para validaciones, revisión documental y activación?",
+        "¿Qué volúmenes de uso y picos de demanda debe soportar la API?",
+        "¿Qué capacidades específicas necesita el panel interno en su primera versión: solo consulta o también edición/intervención?",
+        "¿Qué métricas y reportes son obligatorios para negocio y operación en el MVP?",
+        "¿Qué modelo de autenticación y autorización se utilizará para clientes, usuarios internos y consumidores de API?",
+        "¿Se requiere multicanalidad o continuidad del onboarding iniciado en un canal y retomado en otro?",
+        "¿Qué eventos deberán exponerse hacia sistemas internos o terceros además del estado actual del onboarding?",
+        "¿Se necesita soporte para múltiples idiomas, accesibilidad específica o compatibilidad con dispositivos móviles en la web?"
+      ]
+    },
+    "backend_spec": {
+      "architecture": "Arquitectura backend REST modular orientada a dominio, con separación por capas: API/controllers, application services, domain, persistence e integrations. Se propone un servicio principal de Onboarding como sistema de registro y orquestación del proceso, apoyado por componentes internos para motor de estados, validaciones, gestión documental, notificaciones, auditoría y métricas. Persistencia relacional para consistencia transaccional de clientes, onboardings, estados y auditoría; almacenamiento de archivos en object storage para documentos; mensajería/event bus para eventos de dominio como onboarding creado, validación resuelta, documento observado y cliente activado. Seguridad con autenticación federada/OAuth2/OIDC, autorización RBAC por perfil (cliente, operador, comercial, administrador, integrador), cifrado en tránsito y en reposo, y trazabilidad end-to-end con correlation-id e idempotencia en operaciones críticas. Diseño preparado para futuras integraciones mediante webhooks/eventos y adaptadores desacoplados para proveedores externos de identidad, elegibilidad y sistemas internos de activación.",
+      "domain_entities": [
+        "CustomerProspect",
+        "OnboardingProcess",
+        "OnboardingStep",
+        "OnboardingStatus",
+        "StatusTransition",
+        "IdentityValidation",
+        "EligibilityValidation",
+        "DocumentRequirement",
+        "DocumentSubmission",
+        "DocumentReview",
+        "ActivationRequest",
+        "ActivationResult",
+        "Notification",
+        "AuditEvent",
+        "ManualIntervention",
+        "User",
+        "Role",
+        "Permission",
+        "ExternalIntegrationAttempt",
+        "MetricEvent"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings",
+          "purpose": "Crear un nuevo onboarding con datos iniciales, aplicar regla de unicidad e iniciar el estado del proceso."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}",
+          "purpose": "Obtener el detalle del onboarding, estado actual, progreso y datos permitidos según rol."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings",
+          "purpose": "Listar onboardings con filtros por estado, fechas, identificadores y paginación para panel interno o integraciones."
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/onboardings/{onboardingId}/customer-data",
+          "purpose": "Guardar o actualizar datos del cliente de forma parcial, con validaciones backend y trazabilidad."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/progress",
+          "purpose": "Consultar avance por etapas, pendientes y última etapa editable para retomar el proceso."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/save-progress",
+          "purpose": "Persistir progreso parcial explícitamente y registrar evento de guardado."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/document-requirements",
+          "purpose": "Obtener listado de documentos obligatorios y opcionales aplicables según tipo de cliente o reglas."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/documents",
+          "purpose": "Registrar carga documental y asociar metadata del archivo al onboarding."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/documents",
+          "purpose": "Listar documentos cargados y su estado de revisión."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/documents/{documentId}/review",
+          "purpose": "Permitir a operaciones aprobar, observar o rechazar un documento con motivo obligatorio."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/validations/identity",
+          "purpose": "Disparar o reintentar la validación de identidad contra reglas internas o proveedores externos."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/validations/identity",
+          "purpose": "Consultar resultado e historial de validaciones de identidad."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/validations/eligibility",
+          "purpose": "Ejecutar evaluación de elegibilidad y registrar resultado trazable."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/validations/eligibility",
+          "purpose": "Consultar resultado e historial de evaluaciones de elegibilidad."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/transitions",
+          "purpose": "Solicitar transición de estado controlada por el motor de estados y reglas de negocio."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/history",
+          "purpose": "Obtener historial end-to-end de estados, validaciones, documentos, acciones y eventos."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/activation",
+          "purpose": "Intentar la activación del cliente validando precondiciones y dejando trazabilidad del resultado."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/onboardings/{onboardingId}/interventions",
+          "purpose": "Registrar intervención manual de un usuario interno sobre datos, decisiones o desbloqueos."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/onboardings/{onboardingId}/audit-events",
+          "purpose": "Consultar auditoría de acciones y cambios relevantes del onboarding."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/notifications/dispatch",
+          "purpose": "Disparar notificaciones por evento de negocio o campañas de recordatorio desde procesos internos."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/operations/queue",
+          "purpose": "Listar casos observados, rechazados, pendientes o en excepción para gestión operativa."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/metrics/onboarding-funnel",
+          "purpose": "Exponer métricas agregadas de iniciados, completados, activados, abandonados y tiempos por etapa."
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/webhooks/external-validations",
+          "purpose": "Recibir callbacks de proveedores externos de validación con idempotencia y trazabilidad."
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/reference/onboarding-statuses",
+          "purpose": "Exponer catálogo estandarizado de estados y transiciones para frontend e integraciones."
+        }
+      ],
+      "data_model": [
+        "CustomerProspect(id, customer_type, unique_identifier_type, unique_identifier_value, first_name, last_name, email, phone, date_of_birth, tax_id, created_at, updated_at, pii_encrypted)",
+        "OnboardingProcess(id, prospect_id, external_reference, channel, current_status, progress_percentage, started_at, last_activity_at, expires_at, activated_at, closed_at, created_by, updated_by, version)",
+        "OnboardingStep(id, onboarding_id, step_code, step_status, is_required, started_at, completed_at, last_saved_at, validation_summary)",
+        "StatusTransition(id, onboarding_id, from_status, to_status, transition_reason, origin_type, actor_id, actor_role, created_at, correlation_id)",
+        "IdentityValidation(id, onboarding_id, provider_code, request_payload_ref, result_status, result_code, result_detail, requested_at, resolved_at, retry_count, external_trace_id)",
+        "EligibilityValidation(id, onboarding_id, ruleset_version, provider_code, input_snapshot_ref, result_status, result_reasons, requested_at, resolved_at, retry_count)",
+        "DocumentRequirement(id, customer_type, document_code, document_name, is_required, validation_rules_json, active)",
+        "DocumentSubmission(id, onboarding_id, requirement_id, file_name, content_type, file_size, storage_key, checksum, upload_status, review_status, uploaded_at, uploaded_by)",
+        "DocumentReview(id, document_id, decision, reason_code, reason_detail, reviewed_by, reviewed_at)",
+        "ActivationRequest(id, onboarding_id, activation_mode, precondition_snapshot_ref, requested_by, requested_at, status, error_detail)",
+        "ActivationResult(id, activation_request_id, customer_internal_id, result_status, activated_at, downstream_system, downstream_reference, response_snapshot_ref)",
+        "Notification(id, onboarding_id, event_type, channel, recipient, template_code, delivery_status, scheduled_at, sent_at, failure_reason)",
+        "AuditEvent(id, entity_type, entity_id, onboarding_id, event_type, event_payload_ref, actor_id, actor_role, origin_type, created_at, ip_address, user_agent, correlation_id)",
+        "ManualIntervention(id, onboarding_id, intervention_type, target_entity_type, target_entity_id, reason, requested_by, approved_by, executed_by, executed_at, outcome_status)",
+        "User(id, subject_id, user_type, display_name, email, active, created_at)",
+        "Role(id, code, name, scope)",
+        "Permission(id, code, name)",
+        "UserRole(user_id, role_id)",
+        "RolePermission(role_id, permission_id)",
+        "ExternalIntegrationAttempt(id, onboarding_id, integration_type, provider_code, request_ref, response_ref, status, error_type, error_message, attempts, last_attempt_at, next_retry_at)",
+        "MetricEvent(id, onboarding_id, event_name, step_code, event_timestamp, actor_type, channel, attributes_json)",
+        "Índices recomendados: unicidad por unique_identifier_type + unique_identifier_value + proceso_vigente; índices por current_status, last_activity_at, created_at y external_reference; búsqueda documental por onboarding_id y review_status; auditoría por onboarding_id y created_at.",
+        "Considerar soft delete solo para entidades operativas no regulatorias; para auditoría, estados y validaciones usar append-only para preservar trazabilidad.",
+        "Separar datos sensibles en columnas cifradas o tabla dedicada con control de acceso y políticas de masking para lecturas de usuarios internos."
+      ],
+      "technical_risks": [
+        "Ambigüedad en reglas regulatorias, documentos obligatorios y criterios de activación puede generar retrabajo fuerte en modelo de estados y validaciones.",
+        "Definición tardía de la regla de unicidad de cliente puede provocar duplicados, falsos positivos o migraciones de datos complejas.",
+        "Dependencia de proveedores externos para identidad y elegibilidad introduce timeouts, respuestas inconsistentes y necesidad de idempotencia y reintentos controlados.",
+        "Manejo de PII y documentación sensible requiere cifrado, masking, segregación de accesos, retención y auditoría robusta para evitar incumplimientos.",
+        "Motor de estados con muchas excepciones manuales puede derivar en alta complejidad ciclomática y transiciones difíciles de gobernar sin una state machine explícita.",
+        "Carga y almacenamiento documental puede impactar costos, rendimiento y seguridad si no se separa metadata transaccional de binarios en object storage.",
+        "Concurrencia entre cliente, operadores y procesos automáticos puede generar race conditions sobre estados, revisiones o activación; se recomienda optimistic locking e idempotency keys.",
+        "Falta de estrategia de versionado para reglas de validación y elegibilidad puede dificultar auditoría histórica y reproducibilidad de decisiones.",
+        "Métricas calculadas solo en línea sobre tablas transaccionales pueden afectar performance; conviene emitir eventos y construir vistas agregadas.",
+        "Notificaciones multicanal sin desacople por eventos pueden acoplar el flujo principal a proveedores externos y degradar experiencia del usuario.",
+        "Escalabilidad limitada si listados operativos, historial y auditoría comparten el mismo patrón de lectura pesada sin paginación, índices y estrategias de archivado.",
+        "Permisos granulares mal definidos entre cliente, operador, comercial, administrador e integrador pueden abrir brechas de acceso o frenar la operación.",
+        "Expiración de onboardings incompletos y políticas de retención/borrado no definidas pueden afectar diseño de cron jobs, cierres automáticos y cumplimiento normativo.",
+        "Integraciones futuras con otros canales o sistemas pueden requerir contratos estables; sin versionado de API y eventos, la evolución será riesgosa."
+      ]
+    },
+    "frontend_spec": {
+      "app_structure": "Aplicación web responsive separada en dos experiencias principales: portal de cliente para onboarding guiado y panel interno para operaciones, comercial y administración. Se propone arquitectura frontend modular por dominios con capas de routes, layouts, features, shared UI, services API, guards de permisos y analytics. El portal de cliente debe usar un flujo stepper con guardado automático, validación en tiempo real y recuperación de progreso. El panel interno debe priorizar búsqueda, filtros, trazabilidad, gestión de excepciones y auditoría. Se recomienda diseño mobile-first para cliente, desktop-first para panel interno, accesibilidad WCAG AA, soporte de estados de carga/error/vacío, feedback inmediato, componentes consistentes y navegación protegida por autenticación y roles.",
+      "screens": [
+        {
+          "name": "Landing de onboarding",
+          "purpose": "Presentar el proceso, beneficios, requisitos mínimos, tiempos estimados y punto de inicio del alta digital.",
+          "main_components": [
+            "Header simple",
+            "Hero con CTA iniciar onboarding",
+            "Resumen de etapas del proceso",
+            "Checklist de requisitos previos",
+            "Preguntas frecuentes",
+            "Acceso a retomar proceso",
+            "Footer con ayuda y legales"
+          ]
+        },
+        {
+          "name": "Inicio de registro",
+          "purpose": "Capturar datos iniciales obligatorios para crear un onboarding único y validar duplicados tempranamente.",
+          "main_components": [
+            "Formulario de datos iniciales",
+            "Selector de tipo de cliente",
+            "Campos de identificador único",
+            "Validaciones inline",
+            "Botón continuar",
+            "Mensajes de error de duplicado",
+            "Loader de creación",
+            "Aviso de privacidad y consentimiento"
+          ]
+        },
+        {
+          "name": "Acceso para retomar onboarding",
+          "purpose": "Permitir a un cliente reingresar a un proceso existente y continuar desde el último paso pendiente.",
+          "main_components": [
+            "Formulario de identificación",
+            "Mecanismo de autenticación o token mágico",
+            "Mensajes de recuperación exitosa o fallida",
+            "Resumen del estado actual",
+            "CTA continuar proceso"
+          ]
+        },
+        {
+          "name": "Dashboard de progreso del cliente",
+          "purpose": "Mostrar el estado general del onboarding, etapas completadas, pendientes, observaciones y accesos rápidos para continuar.",
+          "main_components": [
+            "Stepper de progreso",
+            "Tarjetas de etapas",
+            "Indicador de porcentaje completado",
+            "Resumen de validaciones",
+            "Resumen documental",
+            "Alertas de pendientes",
+            "Botón continuar",
+            "Botón guardar y salir"
+          ]
+        },
+        {
+          "name": "Paso de datos personales y contacto",
+          "purpose": "Capturar y validar información personal, de contacto y otros datos obligatorios del cliente.",
+          "main_components": [
+            "Formulario seccionado",
+            "Campos con máscara y ayuda contextual",
+            "Validación en blur y submit",
+            "Barra de progreso",
+            "Botones anterior y continuar",
+            "Autoguardado",
+            "Resumen lateral de completitud"
+          ]
+        },
+        {
+          "name": "Paso de datos adicionales y elegibilidad",
+          "purpose": "Recolectar información complementaria necesaria para reglas de elegibilidad y mostrar el estado de evaluación.",
+          "main_components": [
+            "Formulario dinámico por tipo de cliente",
+            "Mensajes de campos obligatorios",
+            "Resumen de criterios requeridos",
+            "Estado de validación de elegibilidad",
+            "Alertas de observación o pendiente",
+            "Botones anterior y continuar"
+          ]
+        },
+        {
+          "name": "Paso de validación de identidad",
+          "purpose": "Informar el estado de la validación de identidad, guiar al usuario y manejar estados aprobado, pendiente, observado o rechazado.",
+          "main_components": [
+            "Indicador de estado de validación",
+            "Timeline de procesamiento",
+            "Mensajes de resultado",
+            "Instrucciones de corrección si aplica",
+            "Botón reintentar cuando esté permitido",
+            "CTA contactar soporte"
+          ]
+        },
+        {
+          "name": "Paso de carga documental",
+          "purpose": "Permitir cargar documentos requeridos, ver estado de cada archivo y corregir observaciones.",
+          "main_components": [
+            "Lista de requisitos documentales",
+            "Uploader drag and drop accesible",
+            "Selector de archivo tradicional",
+            "Validación de tipo y tamaño",
+            "Vista previa o metadata del archivo",
+            "Estado por documento",
+            "Mensajes de observación o rechazo",
+            "Reemplazo de archivo",
+            "Botones anterior y continuar"
+          ]
+        },
+        {
+          "name": "Revisión y confirmación final",
+          "purpose": "Permitir revisar toda la información cargada antes de enviar el onboarding para validación final o activación.",
+          "main_components": [
+            "Resumen editable por secciones",
+            "Estados de validaciones",
+            "Checklist final",
+            "Consentimientos y declaraciones",
+            "Botón enviar onboarding",
+            "Mensajes de bloqueo por pendientes"
+          ]
+        },
+        {
+          "name": "Estado final del onboarding",
+          "purpose": "Comunicar si el onboarding quedó en revisión, requiere acciones, fue rechazado o fue activado exitosamente.",
+          "main_components": [
+            "Mensaje principal de estado",
+            "Detalle de próximos pasos",
+            "Resumen de pendientes si existen",
+            "Descarga o comprobante",
+            "CTA retomar o ir a inicio",
+            "Canales de soporte"
+          ]
+        },
+        {
+          "name": "Login interno",
+          "purpose": "Autenticar a usuarios internos y redirigir según rol al panel correspondiente.",
+          "main_components": [
+            "Formulario de login federado",
+            "Manejo de SSO/OIDC",
+            "Mensajes de error de autenticación",
+            "Loader de redirección",
+            "Ayuda de acceso"
+          ]
+        },
+        {
+          "name": "Panel interno - listado de onboardings",
+          "purpose": "Permitir a operaciones, comercial y administración visualizar, buscar y filtrar procesos de onboarding.",
+          "main_components": [
+            "Tabla o grilla de onboardings",
+            "Buscador por identificadores",
+            "Filtros por estado y fecha",
+            "Chips de filtros activos",
+            "Paginación",
+            "Acciones rápidas",
+            "Indicadores de SLA o antigüedad",
+            "Estado vacío",
+            "Estado de carga"
+          ]
+        },
+        {
+          "name": "Detalle de onboarding interno",
+          "purpose": "Concentrar visión 360 del proceso con datos del cliente, estados, validaciones, documentos, historial y acciones permitidas.",
+          "main_components": [
+            "Header con estado actual",
+            "Resumen del cliente con masking según permisos",
+            "Stepper o timeline del proceso",
+            "Tabs de datos, validaciones, documentos, historial y auditoría",
+            "Panel de acciones contextuales",
+            "Alertas de riesgo o bloqueo",
+            "Metadatos de trazabilidad"
+          ]
+        },
+        {
+          "name": "Revisión documental interna",
+          "purpose": "Permitir revisar documentos, aprobar, observar o rechazar con motivo obligatorio.",
+          "main_components": [
+            "Visor de documento o metadata",
+            "Selector de decisión",
+            "Campo motivo obligatorio",
+            "Historial de revisiones",
+            "Botones aprobar, observar y rechazar",
+            "Confirmación de acción",
+            "Alertas de éxito o error"
+          ]
+        },
+        {
+          "name": "Gestión de excepciones",
+          "purpose": "Permitir a usuarios autorizados registrar intervenciones manuales y destrabar casos observados, rechazados o en error técnico.",
+          "main_components": [
+            "Resumen del caso",
+            "Formulario de intervención",
+            "Selector de tipo de acción",
+            "Campo de motivo obligatorio",
+            "Confirmación reforzada para acciones sensibles",
+            "Historial de intervenciones",
+            "Indicadores de permisos"
+          ]
+        },
+        {
+          "name": "Auditoría e historial",
+          "purpose": "Mostrar cronología completa de eventos, cambios de estado, actor, origen y resultado del onboarding.",
+          "main_components": [
+            "Timeline cronológico",
+            "Filtros por tipo de evento",
+            "Detalle expandible de evento",
+            "Metadatos de actor y correlation id",
+            "Exportación si aplica",
+            "Estado vacío"
+          ]
+        },
+        {
+          "name": "Métricas y funnel",
+          "purpose": "Visualizar conversión, tiempos, abandono y cuellos de botella del proceso de onboarding.",
+          "main_components": [
+            "KPIs principales",
+            "Gráfico de funnel",
+            "Tiempos por etapa",
+            "Filtros de período y segmento",
+            "Tabla resumen",
+            "Indicadores de tendencia",
+            "Estados de carga y sin datos"
+          ]
+        }
+      ],
+      "state_management": "Estado global dividido por dominios: autenticación y permisos, sesión de onboarding cliente, catálogo de estados y referencias, listado interno, detalle interno, documentos, validaciones, auditoría y métricas. Se recomienda separar server state de UI state. El server state debe manejar caché, reintentos, invalidación y sincronización con la API para GET/POST/PATCH de onboardings, progreso, documentos, validaciones, historial y métricas. El UI state debe cubrir step actual, formularios locales, errores por campo, banners, modales de confirmación, filtros de tablas y accesibilidad de foco. Para formularios complejos, usar esquema de validación compartido con mensajes claros. El flujo cliente requiere autoguardado debounce, persistencia local temporal para resiliencia, control de concurrencia optimista con versionado y recuperación ante refresh. Deben contemplarse estados explícitos: idle, loading, saving, success, validation_error, business_error, technical_error, pending_review, blocked, expired y activated.",
+      "integration_points": [
+        "POST /api/v1/onboardings para crear onboarding desde el registro inicial",
+        "GET /api/v1/onboardings/{onboardingId} para cargar detalle general del proceso",
+        "GET /api/v1/onboardings/{onboardingId}/progress para reconstruir el paso actual y porcentaje de avance",
+        "PATCH /api/v1/onboardings/{onboardingId}/customer-data para guardar formularios parciales y ediciones",
+        "POST /api/v1/onboardings/{onboardingId}/save-progress para guardado explícito al salir",
+        "GET /api/v1/onboardings/{onboardingId}/document-requirements para renderizar requisitos documentales dinámicos",
+        "POST /api/v1/onboardings/{onboardingId}/documents para carga de documentos y actualización del estado UI",
+        "GET /api/v1/onboardings/{onboardingId}/documents para listar documentos y revisiones",
+        "POST /api/v1/onboardings/{onboardingId}/documents/{documentId}/review para revisión documental interna",
+        "POST /api/v1/onboardings/{onboardingId}/validations/identity para disparar o reintentar validación de identidad",
+        "GET /api/v1/onboardings/{onboardingId}/validations/identity para mostrar estado e historial de identidad",
+        "POST /api/v1/onboardings/{onboardingId}/validations/eligibility para ejecutar elegibilidad desde flujos habilitados",
+        "GET /api/v1/onboardings/{onboardingId}/validations/eligibility para reflejar resultado e historial",
+        "POST /api/v1/onboardings/{onboardingId}/transitions para acciones controladas de motor de estados",
+        "GET /api/v1/onboardings/{onboardingId}/history para timeline end-to-end en cliente e interno",
+        "POST /api/v1/onboardings/{onboardingId}/activation para intento de activación desde backend cuando corresponda",
+        "POST /api/v1/onboardings/{onboardingId}/interventions para gestión de excepciones y acciones manuales",
+        "GET /api/v1/onboardings/{onboardingId}/audit-events para pantalla de auditoría",
+        "GET /api/v1/onboardings con filtros y paginación para listado interno",
+        "GET /api/v1/operations/queue para cola operativa de casos observados, rechazados o pendientes",
+        "GET /api/v1/metrics/onboarding-funnel para dashboard de métricas",
+        "GET /api/v1/reference/onboarding-statuses para catálogo de estados, etiquetas y mapeo de UI",
+        "Integración con proveedor de autenticación OIDC/OAuth2 para cliente e internos",
+        "Integración de analytics de frontend para medir abandono, errores de validación, tiempo por paso y conversiones",
+        "Integración con feature flags para activar variantes de flujo, validaciones o canales gradualmente",
+        "Integración con sistema de soporte o contacto para escalar casos bloqueados desde UI"
+      ],
+      "ux_risks": [
+        "Flujo demasiado largo o con demasiados campos por paso puede aumentar abandono temprano.",
+        "Mensajes de validación ambiguos o excesivamente técnicos pueden impedir correcciones exitosas.",
+        "Dependencia de validaciones externas lentas puede generar percepción de falla si no se muestran estados pendientes claros.",
+        "Carga documental compleja en mobile puede afectar conversión si no hay soporte simple para cámara y archivos.",
+        "Falta de guardado automático visible puede generar desconfianza y pérdida percibida de progreso.",
+        "Manejo deficiente de sesiones expiradas puede hacer que el usuario pierda contexto al retomar.",
+        "Exceso de información sensible en panel interno sin masking adecuado impacta seguridad y confianza.",
+        "Estados del proceso poco comprensibles para el cliente pueden disparar consultas y frustración.",
+        "Bloqueos sin explicación accionable ante observaciones o rechazos dificultan la finalización del onboarding.",
+        "Tablas internas con filtros pobres o sin jerarquía visual pueden afectar eficiencia operativa.",
+        "Acciones manuales sensibles sin confirmación reforzada pueden producir errores operativos.",
+        "Falta de accesibilidad en stepper, formularios, uploader y tablas afecta cumplimiento y uso real por distintos perfiles.",
+        "Inconsistencia entre validación frontend y backend puede producir sensación de error injustificado si no se explica correctamente.",
+        "Estados vacíos, errores técnicos o timeouts sin alternativa clara pueden cortar el flujo y reducir conversión."
+      ]
+    },
+    "test_plan": {
+      "strategy": "Plan de pruebas basado en riesgo para una solución de onboarding digital end-to-end con foco en happy path, validaciones de negocio, seguridad, trazabilidad, integraciones críticas y regresión mínima. Se prioriza cobertura sobre flujos core de creación, guardado parcial, validaciones de identidad/elegibilidad, carga y revisión documental, motor de estados, activación, panel interno, auditoría, permisos y manejo de fallas externas. La ejecución se organiza en niveles: UI web cliente, UI panel interno, API backend, integración/eventos y validaciones no funcionales críticas. Se consideran pruebas positivas, negativas, de concurrencia básica e idempotencia para operaciones sensibles.",
+      "coverage": [
+        "Creación de onboarding único con validación de datos obligatorios y regla de unicidad",
+        "Flujo web guiado con progreso visible, validaciones frontend y persistencia de datos por etapa",
+        "Guardado parcial, autoguardado/guardado explícito y recuperación del proceso sin pérdida de información",
+        "Validaciones backend de completitud, formato y prevalencia sobre frontend",
+        "Validación de identidad con estados aprobado, observado, rechazado, pendiente y manejo de timeout/error técnico",
+        "Evaluación de elegibilidad con trazabilidad, reejecución controlada y bloqueo de activación",
+        "Carga documental con reglas de tipo/tamaño/formato, documentos requeridos y reemplazo por observación/rechazo",
+        "Revisión documental interna con decisión, motivo obligatorio y visibilidad al cliente",
+        "Motor de estados con transiciones válidas/invalidas, bloqueo de edición en estados cerrados y registro histórico",
+        "Activación condicionada por datos completos, validaciones resueltas y documentación aprobada",
+        "Notificaciones por eventos relevantes: inicio, abandono, observación, aprobación y activación",
+        "Panel interno con listado, filtros, detalle end-to-end y actualización de información",
+        "Gestión de excepciones manuales con permisos, motivo obligatorio y trazabilidad",
+        "Auditoría completa de acciones, cambios de estado, datos sensibles y accesos restringidos",
+        "Seguridad: autenticación, autorización RBAC, masking de datos sensibles y acceso por rol",
+        "API REST: códigos de respuesta, errores consistentes, idempotencia y exposición estandarizada de estados",
+        "Integraciones externas críticas: errores, timeouts, reintentos y reprocesamiento sin duplicación",
+        "Métricas operativas y funnel: inicio, avance, abandono, resolución y activación",
+        "Regresión mínima sobre endpoints y pantallas core del MVP",
+        "Controles básicos no funcionales: concurrencia optimista, trazabilidad por correlation-id y protección de PII en tránsito/en reposo a nivel verificable"
+      ],
+      "test_cases": [
+        {
+          "id": "TC-001",
+          "title": "Crear onboarding exitosamente con datos iniciales válidos",
+          "objective": "Verificar que un cliente sin proceso previo vigente pueda iniciar onboarding y se cree un registro único con estado inicial.",
+          "preconditions": [
+            "Usuario cliente sin onboarding vigente para el identificador definido por negocio",
+            "API y frontend disponibles",
+            "Datos iniciales obligatorios completos y válidos"
+          ],
+          "expected_result": "El sistema crea el onboarding, asigna identificador único de proceso, registra estado inicial visible, persiste datos básicos y deja trazabilidad/auditoría del evento de creación."
+        },
+        {
+          "id": "TC-002",
+          "title": "Bloqueo de creación por campos obligatorios faltantes",
+          "objective": "Validar que no se cree onboarding cuando faltan datos obligatorios en el alta inicial.",
+          "preconditions": [
+            "Usuario en pantalla o endpoint de creación",
+            "Solicitud con uno o más campos obligatorios vacíos"
+          ],
+          "expected_result": "Frontend muestra campos faltantes y/o backend responde error validable con detalle; no se crea onboarding ni identificador de proceso."
+        },
+        {
+          "id": "TC-003",
+          "title": "Bloqueo de onboarding duplicado por regla de unicidad",
+          "objective": "Verificar que el sistema impida crear onboardings duplicados para un mismo identificador según la regla vigente.",
+          "preconditions": [
+            "Existe onboarding vigente para el identificador evaluado",
+            "Se intenta crear un nuevo onboarding con mismo identificador"
+          ],
+          "expected_result": "El sistema rechaza la creación duplicada, devuelve mensaje consistente según política y registra el intento sin generar nuevo proceso."
+        },
+        {
+          "id": "TC-004",
+          "title": "Validaciones frontend en flujo guiado bloquean avance",
+          "objective": "Confirmar que los errores de formato o completitud en una etapa impidan continuar hasta su corrección.",
+          "preconditions": [
+            "Onboarding iniciado",
+            "Usuario en una etapa editable del flujo web",
+            "Campos con formato inválido o incompletos"
+          ],
+          "expected_result": "Se muestran mensajes comprensibles de validación, el avance a la siguiente etapa se bloquea y no se marca la etapa como completada."
+        },
+        {
+          "id": "TC-005",
+          "title": "Persistencia de datos y progreso al completar una etapa",
+          "objective": "Validar que al completar correctamente una etapa se conserven datos y se actualice el progreso.",
+          "preconditions": [
+            "Onboarding iniciado",
+            "Etapa actual con campos válidos",
+            "Usuario avanza a siguiente etapa"
+          ],
+          "expected_result": "Los datos quedan persistidos, la etapa se refleja como completada, el porcentaje/progreso se actualiza y al volver atrás los datos siguen disponibles."
+        },
+        {
+          "id": "TC-006",
+          "title": "Guardar progreso parcial y retomar onboarding",
+          "objective": "Verificar persistencia parcial y recuperación posterior sin pérdida de información confirmada.",
+          "preconditions": [
+            "Onboarding en curso",
+            "Usuario completó parcialmente una o más secciones",
+            "Se ejecuta guardado explícito o abandono controlado"
+          ],
+          "expected_result": "El progreso parcial se persiste, al reingresar se recupera la última etapa pendiente con los datos guardados y el historial registra el guardado."
+        },
+        {
+          "id": "TC-007",
+          "title": "Prevalencia de validación backend sobre frontend",
+          "objective": "Confirmar que inconsistencias detectadas solo por backend invaliden la operación aunque frontend haya permitido avanzar.",
+          "preconditions": [
+            "Solicitud PATCH o POST con datos aceptados por frontend",
+            "Backend con regla adicional de validación aplicable"
+          ],
+          "expected_result": "La API rechaza la operación con error consistente y detalle de la validación incumplida; no se persiste como dato válido."
+        },
+        {
+          "id": "TC-008",
+          "title": "Disparo y resolución aprobada de validación de identidad",
+          "objective": "Validar el flujo exitoso de identidad con trazabilidad completa.",
+          "preconditions": [
+            "Onboarding con datos mínimos requeridos para identidad",
+            "Proveedor/regla de identidad disponible y respondiendo aprobado"
+          ],
+          "expected_result": "Se registra la solicitud de validación, se almacena el resultado aprobado, el proceso queda habilitado para continuar y el historial refleja request, response y estado."
+        },
+        {
+          "id": "TC-009",
+          "title": "Validación de identidad observada o rechazada visible para operaciones",
+          "objective": "Comprobar que resultados no aprobados pasen a estado gestionable y visible en panel interno.",
+          "preconditions": [
+            "Onboarding con validación de identidad ejecutada",
+            "Proveedor o mock devuelve observado o rechazado"
+          ],
+          "expected_result": "El onboarding cambia a estado correspondiente de gestión/bloqueo, queda visible en cola operativa/panel interno y no puede activarse automáticamente."
+        },
+        {
+          "id": "TC-010",
+          "title": "Timeout o error técnico en validación de identidad",
+          "objective": "Verificar manejo de falla externa sin pérdida de trazabilidad.",
+          "preconditions": [
+            "Onboarding elegible para disparar identidad",
+            "Proveedor externo con timeout o error técnico simulado"
+          ],
+          "expected_result": "Se registra el incidente con detalle, se conserva correlation-id/traza, el caso queda pendiente o en excepción según configuración y no se pierde el proceso."
+        },
+        {
+          "id": "TC-011",
+          "title": "Evaluación de elegibilidad aprobada",
+          "objective": "Confirmar que una elegibilidad aprobada quede trazada y habilite avance si no hay otros bloqueos.",
+          "preconditions": [
+            "Onboarding con información suficiente para elegibilidad",
+            "Reglas o proveedor devuelven aprobado"
+          ],
+          "expected_result": "El sistema registra resultado trazable aprobado y el onboarding puede continuar hacia activación si el resto de precondiciones están cumplidas."
+        },
+        {
+          "id": "TC-012",
+          "title": "Reevaluación de elegibilidad por cambio de datos relevantes",
+          "objective": "Validar posibilidad de reejecutar elegibilidad bajo permisos y reglas definidas.",
+          "preconditions": [
+            "Onboarding con una evaluación previa de elegibilidad",
+            "Cambio de dato relevante persistido",
+            "Usuario o sistema con permisos para reejecución"
+          ],
+          "expected_result": "La reevaluación se ejecuta correctamente, mantiene historial de versiones/resultados y no sobrescribe indebidamente la trazabilidad previa."
+        },
+        {
+          "id": "TC-013",
+          "title": "Carga de documento válido",
+          "objective": "Verificar que un archivo permitido se asocie al onboarding y quede con estado inicial correcto.",
+          "preconditions": [
+            "Onboarding en curso",
+            "Existe requisito documental aplicable",
+            "Archivo con tipo, tamaño y formato válidos"
+          ],
+          "expected_result": "El documento se registra con metadata, se almacena referencia segura al archivo, queda asociado al onboarding y aparece en listado con estado inicial esperado."
+        },
+        {
+          "id": "TC-014",
+          "title": "Rechazo de carga documental inválida",
+          "objective": "Comprobar bloqueo por archivo no permitido.",
+          "preconditions": [
+            "Onboarding en curso",
+            "Usuario intenta cargar archivo con tipo, tamaño o formato no permitido"
+          ],
+          "expected_result": "La carga es rechazada, el sistema informa motivo de rechazo de forma clara y no registra el archivo como evidencia válida."
+        },
+        {
+          "id": "TC-015",
+          "title": "Bloqueo de finalización por documentos obligatorios faltantes",
+          "objective": "Validar que no se pueda finalizar/activar onboarding si falta documentación obligatoria.",
+          "preconditions": [
+            "Onboarding con datos completos",
+            "Uno o más documentos obligatorios ausentes o no aprobados"
+          ],
+          "expected_result": "El sistema bloquea el avance final o la activación, informa qué documentos faltan o están pendientes y mantiene el estado no elegible."
+        },
+        {
+          "id": "TC-016",
+          "title": "Revisión documental interna con motivo obligatorio",
+          "objective": "Verificar que operador autorizado pueda aprobar, observar o rechazar documentos y que en observación/rechazo el motivo sea obligatorio.",
+          "preconditions": [
+            "Usuario interno con rol autorizado",
+            "Existe documento cargado pendiente de revisión"
+          ],
+          "expected_result": "La revisión permite aprobar/observar/rechazar; para observado o rechazado exige motivo, registra actor/fecha/hora y actualiza la visibilidad al cliente."
+        },
+        {
+          "id": "TC-017",
+          "title": "Cliente visualiza observación/rechazo documental y puede reemplazar archivo",
+          "objective": "Comprobar retroalimentación al cliente ante revisión negativa de documento.",
+          "preconditions": [
+            "Documento del onboarding en estado observado o rechazado con motivo registrado",
+            "Cliente accede al flujo"
+          ],
+          "expected_result": "El cliente ve el estado y motivo accionable, puede reemplazar/corregir la evidencia y el nuevo envío queda trazado sin perder historial anterior."
+        },
+        {
+          "id": "TC-018",
+          "title": "Transición de estado válida registrada en historial",
+          "objective": "Verificar que el motor de estados aplique transiciones permitidas y deje evidencia completa.",
+          "preconditions": [
+            "Onboarding en estado con transición válida definida",
+            "Evento de negocio o acción autorizada que dispare el cambio"
+          ],
+          "expected_result": "El estado cambia correctamente, el historial muestra estado origen/destino, fecha/hora, actor/origen y correlation-id si aplica."
+        },
+        {
+          "id": "TC-019",
+          "title": "Rechazo de transición de estado no válida",
+          "objective": "Validar que el motor bloquee transiciones inválidas.",
+          "preconditions": [
+            "Onboarding en estado actual",
+            "Usuario o sistema intenta transición no permitida"
+          ],
+          "expected_result": "La transición se rechaza, el estado no cambia y el intento queda registrado para auditoría/diagnóstico."
+        },
+        {
+          "id": "TC-020",
+          "title": "Bloqueo de edición en onboarding activado o cerrado",
+          "objective": "Confirmar que etapas no permitidas no puedan editarse luego del cierre/activación.",
+          "preconditions": [
+            "Onboarding en estado activado o cerrado",
+            "Usuario intenta editar etapa bloqueada"
+          ],
+          "expected_result": "La operación es denegada según reglas, no hay cambios de datos y se registra el intento si corresponde."
+        },
+        {
+          "id": "TC-021",
+          "title": "Activación exitosa con todas las precondiciones cumplidas",
+          "objective": "Verificar la activación cuando datos, validaciones y documentos están completos y aprobados.",
+          "preconditions": [
+            "Onboarding con datos obligatorios completos",
+            "Identidad aprobada",
+            "Elegibilidad aprobada",
+            "Documentos obligatorios aprobados",
+            "Estado final elegible para activación"
+          ],
+          "expected_result": "La activación se ejecuta exitosamente, el onboarding pasa a activado, se registra actor/origen/fecha-hora, se genera resultado trazable y se expone/dispara evento si corresponde."
+        },
+        {
+          "id": "TC-022",
+          "title": "Bloqueo de activación por condición pendiente u observada",
+          "objective": "Validar que cualquier pendiente, observado o rechazado impida activar.",
+          "preconditions": [
+            "Onboarding con al menos una condición pendiente, observada o rechazada"
+          ],
+          "expected_result": "La activación es rechazada, se detallan motivos de bloqueo y no se genera activación parcial ni inconsistente."
+        },
+        {
+          "id": "TC-023",
+          "title": "Notificación por eventos relevantes del onboarding",
+          "objective": "Comprobar generación de notificaciones en inicio, observación y activación.",
+          "preconditions": [
+            "Canal de notificación configurado",
+            "Se producen eventos de inicio, observación o activación"
+          ],
+          "expected_result": "Se generan registros de notificación con evento, canal, destinatario y estado de envío; el cliente recibe la comunicación o queda trazado el intento/falla."
+        },
+        {
+          "id": "TC-024",
+          "title": "Listado y filtros en panel interno",
+          "objective": "Validar que usuarios internos autorizados puedan consultar onboardings por estado, fecha e identificadores.",
+          "preconditions": [
+            "Usuario interno autenticado con permisos de consulta",
+            "Existen onboardings en distintos estados y fechas"
+          ],
+          "expected_result": "El panel lista correctamente, los filtros devuelven coincidencias esperadas, respeta paginación y muestra estado actual consistente con backend."
+        },
+        {
+          "id": "TC-025",
+          "title": "Detalle end-to-end e historial del onboarding en panel interno",
+          "objective": "Verificar que el detalle interno muestre datos relevantes, validaciones, documentos, historial y auditoría según permisos.",
+          "preconditions": [
+            "Usuario interno autorizado",
+            "Existe onboarding con eventos, documentos y validaciones previas"
+          ],
+          "expected_result": "El detalle muestra visión 360 consistente, con masking de datos sensibles si aplica, cronología completa y metadatos de trazabilidad."
+        },
+        {
+          "id": "TC-026",
+          "title": "Intervención manual autorizada con motivo obligatorio",
+          "objective": "Confirmar que operaciones pueda registrar acciones manuales solo con permisos y trazabilidad.",
+          "preconditions": [
+            "Onboarding en excepción o caso gestionable",
+            "Usuario interno con permiso de intervención"
+          ],
+          "expected_result": "La intervención se guarda con tipo de acción, motivo, actor y resultado; si destraba el caso, el onboarding puede retomar el flujo permitido."
+        },
+        {
+          "id": "TC-027",
+          "title": "Bloqueo de intervención manual para usuario sin permisos",
+          "objective": "Validar enforcement de RBAC en acciones sensibles.",
+          "preconditions": [
+            "Usuario autenticado sin permiso de intervención manual",
+            "Existe caso con opción de gestión visible o accesible por URL/API"
+          ],
+          "expected_result": "El sistema deniega la acción con código/mensaje consistente, no modifica datos ni estados y registra intento de acceso no autorizado cuando aplique."
+        },
+        {
+          "id": "TC-028",
+          "title": "Auditoría de acciones relevantes y acceso restringido",
+          "objective": "Comprobar que toda acción relevante quede auditada y que solo roles autorizados accedan a la auditoría.",
+          "preconditions": [
+            "Se ejecutaron acciones relevantes sobre un onboarding",
+            "Existen usuarios con y sin permiso de auditoría"
+          ],
+          "expected_result": "Los eventos de auditoría incluyen evento, fecha/hora, actor, origen, resultado y contexto; usuario autorizado puede consultarlos y usuario no autorizado recibe acceso denegado."
+        },
+        {
+          "id": "TC-029",
+          "title": "Protección de datos sensibles y masking por rol",
+          "objective": "Verificar que la información sensible se muestre/oculte según permisos y se transmita de forma protegida.",
+          "preconditions": [
+            "Existen datos sensibles cargados en el onboarding",
+            "Usuarios de distintos roles acceden al detalle"
+          ],
+          "expected_result": "Los roles permitidos ven el nivel de detalle autorizado; roles restringidos ven datos enmascarados o denegados; las llamadas usan transporte seguro y no exponen PII innecesaria en responses o logs verificables."
+        },
+        {
+          "id": "TC-030",
+          "title": "API responde errores consistentes e idempotencia en operaciones críticas",
+          "objective": "Validar contrato API para errores y evitar duplicados por reintentos.",
+          "preconditions": [
+            "Consumidor autorizado de API",
+            "Se invocan operaciones críticas como creación, webhooks o activación con error/reintento",
+            "Idempotency key o mecanismo equivalente habilitado donde corresponda"
+          ],
+          "expected_result": "La API devuelve códigos y mensajes consistentes para requests inválidos/no autorizados; ante reintentos de la misma operación crítica no duplica resultados de negocio."
+        },
+        {
+          "id": "TC-031",
+          "title": "Webhook de validaciones externas con idempotencia",
+          "objective": "Comprobar que callbacks duplicados o repetidos no alteren inconsistemente el onboarding.",
+          "preconditions": [
+            "Existe validación externa iniciada",
+            "Se reciben callbacks repetidos con mismo identificador externo/correlation data"
+          ],
+          "expected_result": "El sistema procesa el callback una sola vez a nivel de negocio, conserva trazabilidad del duplicado y mantiene estado final consistente."
+        },
+        {
+          "id": "TC-032",
+          "title": "Falla externa con reintentos controlados y paso a excepción",
+          "objective": "Validar política de reintentos y escalamiento de integraciones críticas.",
+          "preconditions": [
+            "Integración externa crítica configurada con reintentos",
+            "Proveedor responde falla temporal y luego falla definitiva o agota intentos"
+          ],
+          "expected_result": "Se ejecutan reintentos controlados sin duplicar efectos, se registran intentos en trazabilidad y, al agotarse la política, el onboarding pasa a estado gestionable por operaciones."
+        },
+        {
+          "id": "TC-033",
+          "title": "Métricas del funnel reflejan eventos del proceso",
+          "objective": "Comprobar que inicio, avance, abandono, resolución y activación alimenten métricas operativas.",
+          "preconditions": [
+            "Existen onboardings con distintos recorridos y eventos generados",
+            "Usuario autorizado consulta métricas"
+          ],
+          "expected_result": "Las métricas muestran cantidades y tiempos coherentes con los eventos registrados, permitiendo identificar iniciados, completados, activados, abandonados y duración por etapa."
+        },
+        {
+          "id": "TC-034",
+          "title": "Concurrencia básica entre guardado del cliente y acción interna",
+          "objective": "Verificar control de concurrencia/versión para evitar sobreescritura silenciosa.",
+          "preconditions": [
+            "Onboarding abierto en dos sesiones o actores distintos",
+            "Uno actualiza datos/estado y otro intenta guardar sobre versión anterior"
+          ],
+          "expected_result": "El sistema detecta conflicto de versión o aplica estrategia definida de concurrencia, evita pérdida silenciosa de cambios y comunica la situación al actor correspondiente."
+        }
+      ],
+      "release_gates": [
+        "100% de casos críticos ejecutados y aprobados: creación, guardado/retoma, validaciones backend, identidad, elegibilidad, documentos, motor de estados, activación, panel interno, auditoría, RBAC e integraciones críticas.",
+        "0 defectos abiertos de severidad crítica o alta en funcionalidades core del onboarding.",
+        "Defectos de severidad media solo permitidos si tienen workaround aceptado por negocio/operación y no impactan seguridad, activación, trazabilidad ni cumplimiento.",
+        "Cobertura mínima de regresión del MVP ejecutada sobre happy path y errores principales de frontend y API.",
+        "Validación exitosa de reglas de bloqueo de activación: no debe existir activación posible con datos incompletos, documentos faltantes/rechazados o validaciones pendientes/observadas/rechazadas.",
+        "Pruebas de RBAC y acceso a datos sensibles aprobadas para roles cliente, operador, comercial, administrador e integrador.",
+        "Auditoría validada en operaciones relevantes: creación, edición, transición, revisión documental, intervención manual, activación y fallos de integración.",
+        "Manejo de errores externos aprobado: timeouts, reintentos, idempotencia y trazabilidad sin duplicación de resultados de negocio.",
+        "Contratos API validados para respuestas exitosas, errores consistentes y catálogo estandarizado de estados.",
+        "Checklist de no funcionales críticos aprobado: cifrado en tránsito habilitado, masking de PII verificable, correlation-id propagado y logs sin exposición sensible evidente.",
+        "Métricas operativas mínimas disponibles y coherentes para inicio, avance, abandono y activación.",
+        "Aprobación final de QA para release candidate con evidencia de ejecución y trazabilidad de pruebas."
+      ]
+    },
+    "release_bundle": {
+      "branch_strategy": "Trunk-based con branch principal `main`, ramas cortas por capability y feature flags para desacoplar despliegue de exposición funcional. Crear una rama épica `epic/onboarding-mvp-foundations` para consolidar arquitectura y contratos base, y ramas derivadas por dominio: `feat/backend-onboarding-core`, `feat/backend-validations-documents`, `feat/backend-operations-audit-security`, `feat/frontend-customer-onboarding`, `feat/frontend-operations-panel`, `feat/qa-test-assets`. Merge vía PRs pequeños y secuenciales contra `main`, priorizando primero contratos compartidos y catálogo de estados, luego backend core, después frontend cliente, operaciones internas y por último métricas/notificaciones/endurecimiento. Usar ramas `fix/*` para correcciones y `hotfix/*` solo post-release. Versionar cambios contractuales de API y eventos detrás de compatibilidad hacia adelante. Recomendado etiquetar release candidato como `rc/*` y release final con tag semántico `v0.1.0` para MVP.",
+      "commit_plan": [
+        "feat(api): bootstrap onboarding service architecture and base domain modules",
+        "feat(domain): define onboarding aggregates entities and repository contracts",
+        "feat(api): add onboarding creation endpoint with unique process identifier",
+        "feat(validation): enforce mandatory fields and backend format validation rules",
+        "feat(state-machine): implement onboarding statuses catalog and guarded transitions",
+        "feat(audit): register audit events and status transition traceability with correlation id",
+        "feat(progress): support partial save and resume flow for onboarding steps",
+        "feat(documents): add document requirements query and document submission metadata flow",
+        "feat(documents): implement document review decisions with mandatory reason on observed or rejected",
+        "feat(validations): add identity validation trigger result tracking and retry handling",
+        "feat(validations): add eligibility evaluation tracking reprocessing and blocking rules",
+        "feat(activation): implement activation precondition checks and activation result traceability",
+        "feat(operations): expose internal queue and onboarding history endpoints for case management",
+        "feat(security): add RBAC guards masking rules and sensitive data protection controls",
+        "feat(integrations): implement external validation webhook idempotency timeout and retry orchestration",
+        "feat(metrics): emit metric events and onboarding funnel aggregation endpoint",
+        "feat(notifications): dispatch customer notifications for start observation approval and activation events",
+        "feat(frontend): scaffold customer onboarding app shell routes and protected flows",
+        "feat(frontend): implement onboarding start form with duplicate prevention and inline validations",
+        "feat(frontend): build guided stepper flow with autosave progress recovery and error states",
+        "feat(frontend): implement identity eligibility and document upload screens with status feedback",
+        "feat(frontend): add final review submission and onboarding terminal state screens",
+        "feat(frontend-ops): build internal onboarding list filters and detail 360 view",
+        "feat(frontend-ops): implement document review exception management and audit timeline screens",
+        "test(api): add coverage for onboarding creation validations transitions and activation guards",
+        "test(e2e): cover customer happy path save-and-resume documents and blocked activation scenarios",
+        "test(security): validate RBAC audit access and sensitive data masking flows",
+        "docs(api): publish onboarding endpoints status catalog and error contract reference",
+        "docs(release): add MVP release notes checklist and known open questions"
+      ],
+      "pull_request_title": "feat(onboarding): deliver MVP foundations for digital customer onboarding across web and API",
+      "release_notes": [
+        "Se incorpora la base del MVP de onboarding digital con frontend web y backend API orientados a trazabilidad, seguridad e integraciones futuras.",
+        "La API permite crear onboardings únicos, consultar detalle, guardar progreso parcial, retomar el flujo y exponer estados estandarizados.",
+        "Se implementan validaciones de datos en backend con prioridad sobre frontend para obligatorios, formato y reglas de negocio críticas.",
+        "Se agrega motor de estados con transiciones controladas, rechazo de cambios inválidos e historial auditable de estado, actor, origen y fecha.",
+        "Se habilita gestión documental con consulta de requisitos, carga de archivos, revisión interna y bloqueo de activación ante faltantes, observaciones o rechazos.",
+        "Se incorporan validaciones de identidad y elegibilidad con estados aprobado, observado, rechazado y pendiente, más manejo de errores, timeouts y reintentos.",
+        "Se agrega activación condicionada por precondiciones completas y registro trazable del resultado de activación.",
+        "El portal cliente incluye inicio de registro, flujo guiado por etapas, autoguardado, recuperación de progreso, feedback de validaciones y estados finales del proceso.",
+        "El panel interno incorpora listado de onboardings, filtros, detalle end-to-end, revisión documental, gestión de excepciones e historial/auditoría.",
+        "Se añaden controles de seguridad con autenticación/autorización por roles, masking de datos sensibles y trazabilidad con correlation-id.",
+        "Se incorporan eventos y métricas operativas básicas del funnel para medir inicio, avance, abandono, resolución y activación.",
+        "Se incluyen notificaciones por hitos relevantes como inicio, observación y activación, sujetas a configuración de canales.",
+        "Quedan abiertas definiciones de negocio para tipos de cliente, regla final de unicidad, estados oficiales, política de expiración, documentos obligatorios y canales de notificación."
+      ],
+      "checklist": [
+        "Validar que todos los commits cumplan Conventional Commits y que no haya commits temporales o de merge innecesarios.",
+        "Confirmar que el PR describe alcance MVP, módulos impactados, riesgos, dependencias y decisiones abiertas.",
+        "Verificar aprobación de QA sobre casos críticos: creación, guardado/retoma, validaciones, documentos, estados, activación, panel interno, auditoría y RBAC.",
+        "Verificar 0 defectos abiertos de severidad crítica o alta para funcionalidades core del onboarding.",
+        "Confirmar que no es posible activar un cliente con datos obligatorios incompletos.",
+        "Confirmar que no es posible activar un cliente con documentos obligatorios faltantes, observados o rechazados.",
+        "Confirmar que no es posible activar un cliente con validaciones de identidad o elegibilidad pendientes, observadas o rechazadas.",
+        "Validar regla de unicidad activa para prevenir onboardings duplicados según definición vigente.",
+        "Revisar compatibilidad de contratos API: códigos HTTP, payloads de error, catálogo de estados y versionado.",
+        "Confirmar idempotencia en operaciones críticas: creación, activación y webhooks de validaciones externas.",
+        "Verificar propagación de correlation-id y trazabilidad end-to-end en logs, auditoría e intentos de integración.",
+        "Validar masking de PII, cifrado en tránsito y ausencia de datos sensibles expuestos en logs o respuestas indebidas.",
+        "Revisar enforcement de permisos por rol para cliente, operador, comercial, administrador e integrador.",
+        "Confirmar que toda intervención manual, revisión documental y cambio de estado queda auditado con actor, origen y motivo cuando aplique.",
+        "Verificar que frontend maneje estados loading, saving, validation_error, business_error, technical_error, pending_review, blocked, expired y activated.",
+        "Confirmar accesibilidad mínima y comportamiento responsive en portal cliente y panel interno según alcance del MVP.",
+        "Validar que métricas mínimas del funnel y eventos operativos estén disponibles y coherentes.",
+        "Confirmar configuración de feature flags o toggles para funcionalidades que requieran rollout gradual.",
+        "Asegurar migraciones de base de datos revisadas, backward-compatible y probadas en entorno previo a producción.",
+        "Actualizar documentación técnica, colección de API, runbooks operativos y notas de release antes del merge.",
+        "Obtener aprobación de backend, frontend, QA y seguridad/compliance si aplica.",
+        "Crear tag de release candidato y luego tag final `v0.1.0` una vez aprobado el despliegue."
+      ]
+    }
+  },
+  "audit_log": [
+    "Proyecto creado",
+    "Product Owner completado",
+    "Analista Funcional completado",
+    "Backend Developer completado",
+    "Frontend Developer completado",
+    "QA Analyst completado",
+    "Commit Manager completado",
+    "Pipeline completado"
+  ]
+}

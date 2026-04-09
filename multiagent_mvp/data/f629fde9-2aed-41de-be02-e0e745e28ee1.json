@@ -1,0 +1,512 @@
+{
+  "project_id": "f629fde9-2aed-41de-be02-e0e745e28ee1",
+  "title": "etiquetas",
+  "goal": "es necesario un sistema de etiquetas de estado de conversaciones, solo contemplar la creacion",
+  "current_phase": "completed",
+  "constraints": [],
+  "context": {},
+  "artifacts": {
+    "product_brief": {
+      "product_summary": "Implementación de un sistema para la creación de etiquetas que permitan identificar el estado de las conversaciones. El objetivo de la primera fase es proveer la funcionalidad de creación de etiquetas de estado, facilitando la organización y seguimiento efectivo dentro del sistema de gestión de conversaciones.",
+      "business_goals": [
+        "Mejorar la eficiencia operativa permitiendo organización y clasificación de conversaciones por estado.",
+        "Habilitar seguimiento y priorización de conversaciones según su estado, contribuyendo a una mejor toma de decisiones.",
+        "Reducir tiempos de búsqueda y procesamiento de conversaciones pendientes o importantes.",
+        "Establecer la base para futuras automaciones y reportes sobre estados de conversación."
+      ],
+      "personas": [
+        "Agentes de atención al cliente que gestionan grandes volúmenes de conversaciones.",
+        "Supervisores de equipos que monitorean el flujo y estado de conversaciones.",
+        "Usuarios administradores encargados de la configuración y gestión del sistema."
+      ],
+      "epics": [
+        "Desarrollar la funcionalidad para crear nuevas etiquetas de estado personalizadas para conversaciones.",
+        "Diseñar la interfaz de usuario para que los usuarios puedan crear y gestionar etiquetas.",
+        "Establecer reglas y validaciones sobre la creación de etiquetas (por ejemplo, unicidad de nombre, colores, etc)."
+      ],
+      "risks": [
+        "Falta de alineación en la nomenclatura y criterios de etiquetas entre distintos equipos.",
+        "Sobrecarga en la interfaz si se crean demasiadas etiquetas sin restricciones.",
+        "Dificultad en la adopción y capacitación de usuarios respecto al uso adecuado de las etiquetas."
+      ]
+    },
+    "requirements_spec": {
+      "scope": "La primera fase consiste en implementar un sistema que permita la creación de etiquetas de estado personalizadas para conversaciones, permitiendo la organización, seguimiento y priorización efectiva, así como la futura integración con automatizaciones y reportes.",
+      "business_rules": [
+        "El nombre de cada etiqueta de estado debe ser único dentro de la organización.",
+        "Las etiquetas deben tener un color asignado seleccionado de una paleta predefinida.",
+        "Solo los usuarios con permisos de administrador pueden crear, editar o eliminar etiquetas de estado.",
+        "No se podrá crear una etiqueta sin asignar un nombre y un color.",
+        "Debe existir un límite máximo de etiquetas de estado por organización para evitar sobrecarga en la interfaz.",
+        "Las etiquetas de estado no pueden tener caracteres especiales en el nombre."
+      ],
+      "user_stories": [
+        {
+          "id": "US-01",
+          "title": "Crear una etiqueta de estado personalizada",
+          "description": "Como usuario administrador quiero poder crear nuevas etiquetas de estado ingresando nombre y seleccionando un color para organizar las conversaciones según sus necesidades operativas.",
+          "acceptance_criteria": [
+            "El sistema permite ingresar un nombre y seleccionar un color de una paleta predefinida al crear una etiqueta.",
+            "Si el nombre de la etiqueta ya existe, el sistema muestra un mensaje de error y no permite la creación.",
+            "El sistema no permite crear la etiqueta si el nombre o el color están vacíos.",
+            "Al guardar, la nueva etiqueta aparece disponible en el sistema para ser utilizada en conversaciones.",
+            "Solo los usuarios con rol de administrador pueden acceder a la funcionalidad de creación de etiquetas."
+          ],
+          "priority": "high"
+        },
+        {
+          "id": "US-02",
+          "title": "Ver listado de etiquetas de estado existentes",
+          "description": "Como usuario administrador quiero poder ver un listado de todas las etiquetas de estado existentes para revisar y gestionar su uso.",
+          "acceptance_criteria": [
+            "El sistema muestra una lista de todas las etiquetas de estado creadas con su nombre y color correspondiente.",
+            "Si no existen etiquetas, la lista aparece vacía y muestra un mensaje informativo.",
+            "El listado solo es accesible para usuarios con permisos de administración."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-03",
+          "title": "Editar y eliminar etiquetas de estado",
+          "description": "Como usuario administrador quiero poder editar el nombre y color de una etiqueta de estado existente o eliminarla si ya no es necesaria.",
+          "acceptance_criteria": [
+            "El sistema permite editar el nombre y color de una etiqueta existente, validando nuevamente la unicidad del nombre.",
+            "El sistema muestra un mensaje de confirmación antes de eliminar una etiqueta.",
+            "No se permite eliminar una etiqueta que esté asociada a conversaciones activas (regla a validar o ajustar).",
+            "Solo usuarios administradores pueden editar o eliminar etiquetas."
+          ],
+          "priority": "medium"
+        },
+        {
+          "id": "US-04",
+          "title": "Prevenir sobrecarga por exceso de etiquetas",
+          "description": "Como usuario administrador quiero ser notificado si intento crear más etiquetas de las permitidas, para evitar una sobrecarga en la gestión.",
+          "acceptance_criteria": [
+            "El sistema no permite crear una nueva etiqueta si ya se alcanzó el límite definido de etiquetas de estado.",
+            "Al intentar superar el límite, se muestra un mensaje explicativo al usuario.",
+            "El límite máximo de etiquetas es configurable por organización (regla o requerimiento a definir)."
+          ],
+          "priority": "medium"
+        }
+      ],
+      "open_questions": [
+        "¿Cuál es el número máximo de etiquetas de estado permitidas por organización?",
+        "¿Qué sucede si una etiqueta que se desea eliminar está actualmente asociada a conversaciones activas?",
+        "¿Quién define la paleta de colores disponible y puede ser personalizada por la organización?",
+        "¿Existen restricciones de longitud en el nombre de la etiqueta?",
+        "¿Los agentes no administradores podrán visualizar las etiquetas o solo aplicarlas?",
+        "¿Se requieren logs de auditoría sobre la creación, edición y eliminación de etiquetas?"
+      ]
+    },
+    "backend_spec": {
+      "architecture": "Arquitectura de servicios basada en API RESTful, con separación por capas: presentación (API), aplicación (servicios), dominio/modelo y persistencia (base de datos relacional). Uso de autenticación y autorización basada en roles (preferentemente JWT o similar). Validaciones de negocio implementadas en la capa de aplicación. Seguridad: endpoints bajo autenticación, lógica de permisos para administradores, validación de entrada y protección contra inyección SQL y XSS. Escalabilidad apoyada por separación de responsabilidades, posibles optimizaciones de caché en lecturas y análisis del límite de entidades por organización.",
+      "domain_entities": [
+        "Organization",
+        "User",
+        "Conversation",
+        "StatusLabel (Etiqueta de Estado)"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/organizations/{organizationId}/status-labels",
+          "purpose": "Crear una nueva etiqueta de estado personalizada para la organización. Solo administradores autorizados."
+        },
+        {
+          "method": "GET",
+          "path": "/organizations/{organizationId}/status-labels",
+          "purpose": "Listar todas las etiquetas de estado existentes de la organización. Solo administradores autorizados."
+        },
+        {
+          "method": "PUT",
+          "path": "/organizations/{organizationId}/status-labels/{labelId}",
+          "purpose": "Editar nombre y color de una etiqueta de estado existente. Validaciones de permisos y unicidad de nombre."
+        },
+        {
+          "method": "DELETE",
+          "path": "/organizations/{organizationId}/status-labels/{labelId}",
+          "purpose": "Eliminar una etiqueta de estado. Solo si no está asociada a conversaciones activas."
+        },
+        {
+          "method": "GET",
+          "path": "/organizations/{organizationId}/status-labels/{labelId}",
+          "purpose": "Obtener detalle de una etiqueta específica (para gestión o edición)."
+        },
+        {
+          "method": "GET",
+          "path": "/organizations/{organizationId}/status-labels/limits",
+          "purpose": "Consultar el límite actual y cantidad de etiquetas existentes en la organización (control de sobrecarga)."
+        }
+      ],
+      "data_model": [
+        "StatusLabel: id, organization_id, name (único por organización, sin caracteres especiales), color (de paleta predefinida), created_at, updated_at",
+        "Organization: id, name, status_label_limit, ...",
+        "User: id, organization_id, name, email, role (admin/agent/supervisor), ...",
+        "Conversation: id, organization_id, status_label_id, ...",
+        "StatusLabel-Conversation relación: muchas conversaciones pueden tener una StatusLabel"
+      ],
+      "technical_risks": [
+        "Definir y gestionar dinámicamente el límite de etiquetas por organización (variable y configurable).",
+        "Evitar condiciones de carrera de unicidad de nombre en entornos concurrentes.",
+        "Restricción de eliminación de etiquetas asociadas a conversaciones activas: puede generar bloqueo si no se gestiona correctamente el ciclo de vida de las etiquetas.",
+        "Validar exhaustivamente roles y permisos en cada endpoint para evitar escalación no autorizada.",
+        "Posible deterioro de performance en el listado de etiquetas si el límite es muy alto o si hay muchas organizaciones y etiquetas.",
+        "Gestión de concurrencia ante múltiples admins creando etiquetas simultáneamente.",
+        "Escalabilidad del sistema al crecer en cantidad de organizaciones y etiquetas (necesidad de paginación, indexado y control de recursos).",
+        "Auditoría y trazabilidad de cambios en etiquetas (si requerido en futuro)."
+      ]
+    },
+    "frontend_spec": {
+      "app_structure": "Aplicación modular con navegación protegida por roles. Las funcionalidades de gestión de etiquetas solo son visibles y accesibles para administradores. Se emplea un layout común (header, sidebar) y área principal para los distintos screens de gestión de etiquetas. Integración con gestión global de usuarios/roles.",
+      "screens": [
+        {
+          "name": "Listado de Etiquetas de Estado",
+          "purpose": "Permitir a administradores visualizar y gestionar las etiquetas existentes.",
+          "main_components": [
+            "Tabla de etiquetas (nombre, color, acciones)",
+            "Barra de búsqueda (opcional, para futuro escalado)",
+            "Botón 'Crear nueva etiqueta'",
+            "Mensajes de estado (vacío, error, éxito)",
+            "Paginación (si aplica por cantidad de etiquetas)",
+            "Indicador de cantidad total / límite alcanzado"
+          ]
+        },
+        {
+          "name": "Crear/Editar Etiqueta de Estado (Modal o Screen)",
+          "purpose": "Permite a administradores crear o editar los datos de una etiqueta de estado.",
+          "main_components": [
+            "Input de nombre de etiqueta",
+            "Selector de color (paleta predefinida con descripción accesible, uso de radio buttons o swatches con texto y contraste asegurado)",
+            "Mensajes de error (unicidad, obligatoriedad, formato del nombre, límite alcanzado)",
+            "Botón para guardar/cancelar",
+            "Loader al guardar",
+            "Feedback accesible con ARIA-live"
+          ]
+        },
+        {
+          "name": "Confirmación de Eliminación",
+          "purpose": "Confirmar antes de eliminar una etiqueta, mostrando advertencias relevantes.",
+          "main_components": [
+            "Mensaje de advertencia y descripción si la etiqueta está asociada a conversaciones activas",
+            "Botón confirmar/cancelar",
+            "Feedback sobre éxito o error en la eliminación",
+            "Mensaje específico si no se puede eliminar la etiqueta"
+          ]
+        }
+      ],
+      "state_management": "Gestión de estado local para formularios y feedback inmediato (por ejemplo, React useState). Gestión global (ej: Context API, Redux o similar) para estado de usuario/logueo y datos de etiquetas (con cacheo/invalidate tras CRUD). Manejo de loading, errores y estados vacíos. Sincronización tras acciones (ej: update/delete trigger updates al listado).",
+      "integration_points": [
+        "GET /organizations/{organizationId}/status-labels - para obtener listado de etiquetas",
+        "POST /organizations/{organizationId}/status-labels - para crear una etiqueta",
+        "PUT /organizations/{organizationId}/status-labels/{labelId} - para editar etiqueta",
+        "DELETE /organizations/{organizationId}/status-labels/{labelId} - para eliminar etiqueta",
+        "GET /organizations/{organizationId}/status-labels/limits - para controlar límite de etiquetas",
+        "Autenticación JWT y chequeo de rol de administración"
+      ],
+      "ux_risks": [
+        "Exceso de etiquetas puede saturar la interfaz; debe comunicarse claramente el límite y proveer feedback visual contextual.",
+        "Errores de accesibilidad en selector de color (asegurar contraste, roles ARIA apropiados, alternativas textuales, uso keyboard-first).",
+        "Falta de feedback claro si el nombre ya existe, si hay errores en el formato o alcance del límite.",
+        "Flujo bloqueado si un admin no comprende por qué no puede eliminar una etiqueta asociada a conversaciones activas (necesidad de mensajes explicativos).",
+        "Gestión de estados de carga y errores para evitar incertidumbre en acciones que impactan visibilidad de etiquetas.",
+        "Consistencia en la nomenclatura y uso de etiquetas para evitar confusiones entre equipos."
+      ]
+    },
+    "architecture_review": {
+      "summary": "La arquitectura propuesta para el sistema de gestión de etiquetas de estado está bien alineada con los requerimientos de negocio y pone especial foco en los controles de permisos, validaciones, y escalabilidad. Hay una correcta separación de capas y un claro enfoque en robustez, aunque existen áreas de detalle y definición pendiente, especialmente en criterios de límites y reglas asociadas al ciclo de vida de etiquetas. Se detectan algunos puntos a simplificar para el MVP y potenciales mejoras en UX y seguridad.",
+      "strengths": [
+        "Separación clara de responsabilidades entre frontend, backend y data model.",
+        "Restricción estricta de acciones administrativas solo para usuarios autorizados.",
+        "Validaciones explícitas de unicidad y reglas de negocio en la capa de aplicación.",
+        "Consideración anticipada de riesgos técnicos, escalabilidad y performance.",
+        "Cuidado por la experiencia de usuario (feedback, mensajes claros, accesibilidad en UI).",
+        "API limpia y consistente, con endpoints alineados a los casos de uso principales.",
+        "Modelo de datos adecuado para las operaciones requeridas en esta fase."
+      ],
+      "issues": [
+        "Falta definición del límite exacto de etiquetas por organización, lo que puede trabar la implementación y el testeo.",
+        "No se especifica qué ocurre con las etiquetas asociadas a conversaciones activas al intentar eliminarlas: puede afectar UX o bloquear flujos administrativos.",
+        "No queda claro si la paleta de colores es fija o personalizada por organización; esto podría complejizar innecesariamente la etapa inicial.",
+        "Ausencia de paginación en el endpoint de listado podría afectar performance si el límite es alto.",
+        "No hay precisión sobre logs/auditoría, aunque en MVP puede omitirse, debe aclararse explícitamente.",
+        "Inconsistencia menor entre la regla de unicidad y manejo de concurrencia: requiere manejo de errores atómicos en la capa de persistencia."
+      ],
+      "mvp_simplifications": [
+        "Definir un límite fijo y bajo de etiquetas por organización para MVP (ej.: 10) y documentar que la configuración dinámica será futura.",
+        "Restringir la eliminación de etiquetas asociadas a conversaciones activas: para el MVP, simplemente impedir la eliminación y mostrar mensaje claro.",
+        "Usar una paleta de colores fija y preaprobada; desestimar personalización por organización para la primera versión.",
+        "Omitir filtros avanzados y búsqueda en el listado; paginación solo si realmente supera el límite acordado.",
+        "No incluir funcionalidades de logs/auditoría salvo que el compliance lo exija expresamente."
+      ],
+      "security_observations": [
+        "Correcto uso de autenticación robusta (JWT), pero se recomienda revisar exhaustivamente la verificación de roles en cada endpoint.",
+        "Validar inputs de nombre y color tanto en frontend como backend para evitar ataques de inyección.",
+        "Describir y testear explícitamente la protección ante race conditions y evitar duplicados de nombre.",
+        "Chequear que los endpoints de API sólo devuelvan información relevante a usuarios autorizados, evitando data exposure.",
+        "Verificar que la API no exponga colores indebidamente (por ejemplo, permítir sólo valores de la paleta).",
+        "Asegurar todos los endpoints bajo HTTPS.",
+        "Considerar requerimiento de logs de auditoría si hay implicancias legales o regulatorias (se recomienda una aclaración formal en la documentación del MVP)."
+      ],
+      "recommendations": [
+        "Acordar y documentar el límite de etiquetas por organización antes de construir el MVP.",
+        "Implementar bloqueo simple ante intento de eliminar etiquetas asociadas a conversaciones activas, con mensaje UX claro.",
+        "Revisar y testear validaciones de unicidad tanto a nivel aplicación como base de datos.",
+        "Utilizar paleta de colores fija, documentar la limitación temporal en el roadmap.",
+        "Agregar test de roles y cobertura de casos de acceso denegado en endpoints y frontend.",
+        "Monitorizar performance del endpoint de listado si se esperan organizaciones con alta cantidad de etiquetas.",
+        "Dejar explícito en la documentación qué funcionalidades se omiten en el MVP, especialmente logs de auditoría.",
+        "Prototipar los mensajes de error/feedback UX críticos antes de desarrollo pleno.",
+        "Establecer convención clara y restricción de longitud/formato del nombre de etiqueta en backend y frontend.",
+        "Definir en el backlog el análisis de requisitos de auditoría, reporting y automatización para fases posteriores."
+      ],
+      "approval_status": "approved_with_changes"
+    },
+    "test_plan": {
+      "strategy": "El plan de pruebas está orientado a cubrir los caminos felices, los edge cases relevantes y un set de tests de regresión mínima para las funcionalidades críticas relacionadas a la gestión de etiquetas de estado. Se ejecutarán pruebas funcionales sobre la UI y la API, verificando desde la perspectiva de usuario administrador y roles restringidos. Se agregarán pruebas no funcionales para validar criterios mínimos de performance y seguridad en puntos críticos de acceso o validación. La regresión mínima se enfocará en la no disrupción de flujos básicos de gestión de etiquetas y autorización. Los criterios de aceptación se derivan de la especificación y user stories, y los gates de release aseguran calidad funcional, de rol y de integridad de datos.",
+      "coverage": [
+        "Creación de etiquetas (happy path y errores)",
+        "Listado de etiquetas (vacío y poblado)",
+        "Edición de etiquetas (nombre y color, unicidad, errores de validación)",
+        "Eliminación de etiquetas (condiciones, bloqueo si asociado a conversaciones activas)",
+        "Validaciones de permisos (admin vs. no admin)",
+        "Validaciones de unicidad de nombre y formato",
+        "Validación del límite de etiquetas",
+        "Restricciones de color (solo paleta predefinida)",
+        "Feedback visual/mensajes UX",
+        "Validación básica de performance y concurrencia en creación/edición",
+        "Pruebas mínimas de regresión sobre endpoints e interfaces afectadas",
+        "Seguridad: acceso solo a usuarios autorizados y validación de inputs"
+      ],
+      "test_cases": [
+        {
+          "id": "TC-01",
+          "title": "Creación exitosa de etiqueta de estado (happy path)",
+          "objective": "Verificar que un administrador logueado puede crear correctamente una etiqueta de estado ingresando un nombre válido y seleccionando un color válido de la paleta.",
+          "preconditions": [
+            "Usuario logueado con rol de admin",
+            "Menos del límite máximo de etiquetas de estado existentes en la organización"
+          ],
+          "expected_result": "La etiqueta se crea, aparece en el listado y está disponible para su uso en conversaciones."
+        },
+        {
+          "id": "TC-02",
+          "title": "Intentar crear etiqueta con nombre duplicado",
+          "objective": "Verificar que el sistema no permite crear una etiqueta con un nombre ya existente en la organización y muestra un mensaje de error adecuado.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Existe al menos una etiqueta con el nombre 'Pendiente'"
+          ],
+          "expected_result": "El sistema notifica que el nombre ya existe y no permite crear la etiqueta."
+        },
+        {
+          "id": "TC-03",
+          "title": "Intentar crear etiqueta sin nombre o sin color",
+          "objective": "Validar que el sistema no permite creación de etiquetas si falta el nombre o el color.",
+          "preconditions": [
+            "Usuario admin logueado"
+          ],
+          "expected_result": "La acción de guardar está deshabilitada o se muestra mensaje de error; no se crea la etiqueta."
+        },
+        {
+          "id": "TC-04",
+          "title": "Creación de etiqueta con caracteres especiales en el nombre",
+          "objective": "Verificar que no se permite ingresar caracteres especiales en el nombre de la etiqueta.",
+          "preconditions": [
+            "Usuario admin logueado"
+          ],
+          "expected_result": "Se muestra mensaje de error y no se permite guardar."
+        },
+        {
+          "id": "TC-05",
+          "title": "Visualización de listado de etiquetas (con datos)",
+          "objective": "Asegurar que el listado de etiquetas muestra correctamente nombre y color de todas las etiquetas existentes.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Existen varias etiquetas en la organización"
+          ],
+          "expected_result": "La tabla/listado muestra nombre y color de cada etiqueta correctamente."
+        },
+        {
+          "id": "TC-06",
+          "title": "Visualización de listado de etiquetas (sin datos)",
+          "objective": "Verificar que si no hay etiquetas en la organización se muestra un mensaje informativo y la lista aparece vacía.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "No existen etiquetas creadas"
+          ],
+          "expected_result": "Se ve mensaje tipo 'No hay etiquetas de estado' y la lista está vacía."
+        },
+        {
+          "id": "TC-07",
+          "title": "Intento de acceso a funcionalidades de etiquetas por usuario no admin",
+          "objective": "Garantizar que sólo administradores pueden ver y operar la gestión de etiquetas.",
+          "preconditions": [
+            "Usuario logueado con rol de agente o supervisor"
+          ],
+          "expected_result": "Opciones de gestión de etiquetas no están visibles ni accesibles; intentos vía API retornan error de permisos."
+        },
+        {
+          "id": "TC-08",
+          "title": "Edición de etiqueta: cambio de nombre y color (happy path)",
+          "objective": "Verificar que un admin puede editar el nombre y color de una etiqueta válida, respetando las restricciones.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Existe al menos una etiqueta"
+          ],
+          "expected_result": "La edición es exitosa, la etiqueta se actualiza en el listado con los nuevos valores."
+        },
+        {
+          "id": "TC-09",
+          "title": "Edición con intento de nombre duplicado",
+          "objective": "Chequear que no se pueda editar una etiqueta asignándole un nombre ya usado por otra en la organización.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Existen al menos dos etiquetas con distintos nombres"
+          ],
+          "expected_result": "La acción es rechazada con un mensaje claro y no se permite guardar el cambio."
+        },
+        {
+          "id": "TC-10",
+          "title": "Intentar superar el límite de etiquetas permitidas",
+          "objective": "Asegurar que una vez alcanzado el límite configurado por la organización no se permita crear más etiquetas.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Cantidad de etiquetas creada igual al límite (ejemplo: 10/10)"
+          ],
+          "expected_result": "El botón de crear nueva etiqueta está deshabilitado o muestra mensaje de que se alcanzó el límite. Si se intenta crear vía API, se rechaza con error y mensaje explicativo."
+        },
+        {
+          "id": "TC-11",
+          "title": "Intentar seleccionar un color fuera de la paleta predefinida",
+          "objective": "Verificar que no se pueda asignar un color fuera de la paleta aprobada.",
+          "preconditions": [
+            "Usuario admin logueado"
+          ],
+          "expected_result": "El selector sólo permite elegir colores válidos; intentos fuera de la paleta son rechazados por frontend y backend."
+        },
+        {
+          "id": "TC-12",
+          "title": "Eliminar etiqueta no asociada a conversaciones",
+          "objective": "Asegurar que un admin puede eliminar una etiqueta no vinculada a ninguna conversación activa.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "La etiqueta seleccionada no está en uso en ninguna conversación activa"
+          ],
+          "expected_result": "Tras confirmación, la etiqueta se elimina del sistema y desaparece del listado."
+        },
+        {
+          "id": "TC-13",
+          "title": "Intentar eliminar etiqueta asociada a conversaciones activas",
+          "objective": "Asegurar que no se permita eliminar etiquetas en uso y se brinde mensaje claro.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "La etiqueta está asignada a una o más conversaciones activas"
+          ],
+          "expected_result": "La acción es bloqueada y se muestra mensaje informando el motivo; la etiqueta sigue visible."
+        },
+        {
+          "id": "TC-14",
+          "title": "Validación de rendimiento en el listado de etiquetas",
+          "objective": "Verificar que la UI responde adecuadamente (performance aceptable) aun cuando la cantidad de etiquetas es alta pero dentro del límite.",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Organización con la cantidad máxima de etiquetas"
+          ],
+          "expected_result": "El tiempo de carga del listado es <2 segundos y las operaciones de CRUD mantienen buena respuesta."
+        },
+        {
+          "id": "TC-15",
+          "title": "Regresión: flujo de creación, edición y eliminación se mantiene funcional luego de cambios",
+          "objective": "Validar que los flujos básicos no se rompen tras un cambio menor (p. ej. ajuste visual o de lógica de límite).",
+          "preconditions": [
+            "Usuario admin logueado",
+            "Sistema actualizado con cambios recientes"
+          ],
+          "expected_result": "Los tests de creación, edición y eliminación ejecutados secuencialmente arrojan los resultados esperados."
+        },
+        {
+          "id": "TC-16",
+          "title": "Prueba de concurrencia: dos admins intentan crear etiquetas con el mismo nombre simultáneamente",
+          "objective": "Verificar que se controla la condición de carrera y sólo una operación es exitosa.",
+          "preconditions": [
+            "Dos usuarios admin logueados en la misma organización"
+          ],
+          "expected_result": "Sólo uno puede crear la etiqueta; el otro recibe error de nombre duplicado."
+        },
+        {
+          "id": "TC-17",
+          "title": "Intento de inyección de SQL/XSS en campos de nombre",
+          "objective": "Asegurar sanitización de inputs frente a ataques de inyección.",
+          "preconditions": [
+            "Usuario admin logueado"
+          ],
+          "expected_result": "Inputs maliciosos (p. ej. <script> o 'DROP TABLE') son rechazados y/o sanitizados correctamente; no hay vulnerabilidades documentadas."
+        }
+      ],
+      "release_gates": [
+        "Todas las pruebas de casos felices y edge cases pasan satisfactoriamente.",
+        "Ningún usuario no administrador puede acceder a funcionalidades de gestión de etiquetas.",
+        "Validación de unicidad, límite y reglas de negocio aprobadas y sin saltos vulnerables.",
+        "Las operaciones (crear, editar, eliminar) funcionan correctamente desde frontend y API.",
+        "Mensajes de error y avisos UX aprobados por QA/",
+        "Pruebas mínimas de performance sobre el listado de etiquetas completadas.",
+        "Regresión básica validada tras cambios.",
+        "No se detectan vulnerabilidades graves de seguridad en la validación de inputs o control de acceso.",
+        "Definición documentada del límite de etiquetas y reglas de ciclo de vida para MVP."
+      ]
+    },
+    "release_bundle": {
+      "branch_strategy": "feature branching (Git Flow):\n- Desarrollar en ramas feature aisladas para cada gran funcionalidad (ej. feature/status-labels).\n- Integrar todas las tareas relacionadas a la gestión de etiquetas (creación, edición, eliminación, listado, límite) en esta feature branch.\n- Realizar squash merges a develop.\n- PR final de feature/status-labels -> develop, y luego release a main tras validación.\n- Hotfixes/bugs menores se gestionan en ramas hotfix/ si es necesario.",
+      "commit_plan": [
+        "feat(status-labels): add data model and migrations for StatusLabel entity",
+        "feat(status-labels): implement API endpoints for CRUD operations (create, read, update, delete)",
+        "feat(status-labels): enforce admin-only access for status label management endpoints",
+        "feat(status-labels): add color validation against fixed palette",
+        "feat(status-labels): validate unique label names per organization, no special chars",
+        "feat(status-labels): implement configurable (MVP: fixed) label limit per organization",
+        "feat(status-labels): block deletion of labels linked to active conversations",
+        "feat(status-labels): frontend UI - status labels list with pagination and feedback",
+        "feat(status-labels): frontend UI - create label modal with validations",
+        "feat(status-labels): frontend UI - edit/delete label with error handling",
+        "test(status-labels): add API and UI tests for all use cases and edge conditions",
+        "refactor(status-labels): improve error handling and UX feedback based on QA/prototypes",
+        "docs(status-labels): document API, usage limits and restrictions for MVP"
+      ],
+      "pull_request_title": "feat(status-labels): MVP gestión de etiquetas de estado personalizadas en conversaciones (CRUD, límite, permisos, validaciones UX)",
+      "release_notes": [
+        "Implementación de gestión completa de etiquetas de estado personalizadas para conversaciones.",
+        "Soporte para creación, edición, visualización y eliminación (con bloqueos por uso activo) de etiquetas de estado.",
+        "Paleta de colores fija y validada; nombres únicos por organización y sin caracteres especiales.",
+        "Limitación de cantidad máxima de etiquetas configurada (MVP: fijo a 10); feedback y bloqueo al intentar superar límite.",
+        "Acceso restringido sólo a usuarios administradores y JWT auth.",
+        "Validación exhaustiva de roles, permisos y reglas de negocio en backend y frontend.",
+        "Integración completa de UI accesible, mensajería y feedback de errores/éxito.",
+        "Cobertura de tests funcionales, de edge cases y mínima de performance y seguridad.",
+        "Documentación actualizada sobre reglas, límites y restricciones del MVP."
+      ],
+      "checklist": [
+        "QA: Ejecutar todos los test cases de la suite, incluyendo edge y regresión básica.",
+        "Validar unicidad y formato de nombres tanto en frontend como backend.",
+        "Verificar enforcement de roles/permiso admin en UI y APIs.",
+        "Comprobar límites máximos de etiquetas y feedback UX desde ambas capas.",
+        "Probar simultaneidad (race condition) en creación/edición de etiquetas.",
+        "Testear bloqueo correcto ante intento de eliminar etiquetas asociadas a conversaciones activas.",
+        "Revisar cobertura de tests automatizados y reporte de vulnerabilidades XSS/SQL injection.",
+        "Checklist de accesibilidad en selección de color y mensajes ARIA/live.",
+        "Validar mensajes UX críticos aprobados por QA y Product Owner.",
+        "Documentar explícitamente limitaciones MVP (límite fijo, sin log/auditoría, paleta fija)."
+      ]
+    }
+  },
+  "audit_log": [
+    "Proyecto creado",
+    "Product Owner completado",
+    "Analista Funcional completado",
+    "Backend Developer completado",
+    "Frontend Developer completado",
+    "Architecture Reviewer completado",
+    "QA Analyst completado",
+    "Commit Manager completado",
+    "Pipeline completado"
+  ]
+}
