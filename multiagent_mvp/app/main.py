@@ -14,7 +14,7 @@ import os
 
 
 app = FastAPI(
-    title="Software Factory Multi-Agent MVP ",
+    title="Software Factory Multi-Agent MVP1",
     version="0.1.0",
     description="MVP para orquestar agentes especializados de desarrollo de software con OpenAI.",
 )
@@ -28,7 +28,7 @@ async def home() -> str:
     <html>
       <head><title>Multi-Agent MVP</title></head>
       <body style="font-family: Arial, sans-serif; max-width: 960px; margin: 40px auto;">
-        <h1>Software Factory Multi-Agent MVP</h1>
+        <h1>Software Factory Multi-Agent MVP1</h1>
         <p>API disponible en <a href="/docs">/docs</a>.</p>
         <p>Endpoint principal: <code>POST /projects</code></p>
       </body>
