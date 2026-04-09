@@ -157,3 +157,56 @@ def test_pipeline_accepts_tuple_role_outputs():
 
     assert response.status == "completed"
     assert response.state.artifacts.product_brief is not None
+
+
+def test_coerce_output_supports_model_dict_json_bytes_singleton_list():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    model = ProductBrief(
+        product_summary="x",
+        business_goals=["g"],
+        personas=["p"],
+        epics=["e"],
+        risks=["r"],
+    )
+
+    as_dict = model.model_dump()
+    as_json = model.model_dump_json()
+    as_bytes = as_json.encode("utf-8")
+
+    assert orch._coerce_output(ProductBrief, model).product_summary == "x"
+    assert orch._coerce_output(ProductBrief, as_dict).product_summary == "x"
+    assert orch._coerce_output(ProductBrief, as_json).product_summary == "x"
+    assert orch._coerce_output(ProductBrief, as_bytes).product_summary == "x"
+    assert orch._coerce_output(ProductBrief, [as_dict]).product_summary == "x"
+
+
+def test_coerce_output_rejects_bool_with_clear_error():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    try:
+        orch._coerce_output(ProductBrief, True)
+    except ValueError as exc:
+        assert "bool" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for bool output")
+
+
+def test_extract_raw_output_supports_sdk_variants():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    expected = {"product_summary": "x", "business_goals": ["g"], "personas": ["p"], "epics": ["e"], "risks": ["r"]}
+
+    class ResultA:
+        final_output = expected
+
+    class ResultB:
+        final_output = None
+        output_text = ProductBrief(**expected).model_dump_json()
+
+    class ResultC:
+        final_output = None
+
+        def final_output_as(self, _model):
+            return expected
+
+    assert orch._extract_raw_output(ResultA(), ProductBrief) == expected
+    assert orch._extract_raw_output(ResultB(), ProductBrief) is not None
+    assert orch._extract_raw_output(ResultC(), ProductBrief) == expected

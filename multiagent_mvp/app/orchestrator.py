@@ -117,12 +117,6 @@ class PipelineOrchestrator:
             },
             state=state,
         )
-        backend_spec = self._enforce_scope_policy(
-            state=state,
-            role="backend_developer",
-            artifact=backend_spec,
-            fallback_scope=requirements_spec.scope,
-        )
         backend_spec = self._normalize_role_result("backend_developer", backend_spec)
         state.artifacts.backend_spec = backend_spec
         state.audit_log.append("Backend Developer completado")
@@ -137,12 +131,6 @@ class PipelineOrchestrator:
                 "backend_spec": backend_spec.model_dump(),
             },
             state=state,
-        )
-        frontend_spec = self._enforce_scope_policy(
-            state=state,
-            role="frontend_developer",
-            artifact=frontend_spec,
-            fallback_scope=requirements_spec.scope,
         )
         frontend_spec = self._normalize_role_result("frontend_developer", frontend_spec)
         state.artifacts.frontend_spec = frontend_spec
@@ -277,15 +265,16 @@ class PipelineOrchestrator:
         )
 
         # Manejo robusto de salida
-        raw_output = getattr(result, "final_output", None)
-
-        if raw_output is None:
-            raw_output = getattr(result, "final_output_as", None)
-
+        raw_output = self._extract_raw_output(result, output_model)
         if raw_output is None:
             raise RuntimeError(f"El agente {role} no devolvió output válido")
 
-        parsed = self._coerce_output(output_model, raw_output)
+        try:
+            parsed = self._coerce_output(output_model, raw_output)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"Salida inválida del agente {role}: {type(raw_output)!r}. Error: {exc}"
+            ) from exc
 
         print(f"[END] role={role}")
 
@@ -500,7 +489,41 @@ class PipelineOrchestrator:
         if isinstance(raw_output, str):
             return output_model.model_validate_json(raw_output)
 
+        if isinstance(raw_output, bytes):
+            return output_model.model_validate_json(raw_output.decode("utf-8"))
+
+        if isinstance(raw_output, list) and len(raw_output) == 1:
+            return self._coerce_output(output_model, raw_output[0])
+
+        if isinstance(raw_output, bool):
+            raise ValueError(
+                "Se recibió bool en lugar de JSON/modelo estructurado del agente"
+            )
+
         raise TypeError(f"Formato de salida no soportado: {type(raw_output)!r}")
+
+    def _extract_raw_output(self, result: Any, output_model: Type[BaseModel]) -> Any:
+        """Obtiene la mejor candidata de salida soportando distintas versiones del SDK."""
+        raw_output = getattr(result, "final_output", None)
+        if raw_output not in (None, "", []):
+            return raw_output
+
+        final_output_as = getattr(result, "final_output_as", None)
+        if callable(final_output_as):
+            try:
+                candidate = final_output_as(output_model)
+            except TypeError:
+                candidate = final_output_as()
+            if candidate not in (None, "", []):
+                return candidate
+        elif final_output_as not in (None, "", []):
+            return final_output_as
+
+        output_text = getattr(result, "output_text", None)
+        if output_text not in (None, "", []):
+            return output_text
+
+        return None
 
     def _extract_agent_dialogue(self, result: Any) -> list[str]:
         """Extrae trazas de diálogo del resultado del SDK sin romper compatibilidad.
