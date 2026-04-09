@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Tuple, Type
@@ -108,6 +109,25 @@ class PipelineOrchestrator:
         )
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
+        state.current_phase = "architecture_review_gate"
+
+        is_architecture_approved, architecture_block_reasons = self._evaluate_architecture_gate(
+            architecture_review
+        )
+        if not is_architecture_approved:
+            state.current_phase = "blocked_architecture_review"
+            state.audit_log.append(
+                self._format_blocking_audit_entry(
+                    gate_name="architecture_review",
+                    block_reasons=architecture_block_reasons,
+                )
+            )
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- QA ----------------
         test_plan = await self._run_role(
@@ -122,6 +142,23 @@ class PipelineOrchestrator:
         )
         state.artifacts.test_plan = test_plan
         state.audit_log.append("QA Analyst completado")
+        state.current_phase = "qa_gate"
+
+        is_qa_approved, qa_block_reasons = self._evaluate_qa_gate(test_plan)
+        if not is_qa_approved:
+            state.current_phase = "blocked_qa_gate"
+            state.audit_log.append(
+                self._format_blocking_audit_entry(
+                    gate_name="qa_gate",
+                    block_reasons=qa_block_reasons,
+                )
+            )
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- RELEASE ----------------
         release_bundle = await self._run_role(
@@ -243,6 +280,79 @@ class PipelineOrchestrator:
     def _persist_state(self, state: ProjectState) -> None:
         out_path = DATA_DIR / f"{state.project_id}.json"
         out_path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
+
+    # ==========================================================
+    # GATES
+    # ==========================================================
+
+    def _evaluate_architecture_gate(
+        self, architecture_review: BaseModel
+    ) -> Tuple[bool, list[str]]:
+        approval_status = (
+            getattr(architecture_review, "approval_status", "") or ""
+        ).strip().lower()
+        issues = getattr(architecture_review, "issues", []) or []
+        security_observations = (
+            getattr(architecture_review, "security_observations", []) or []
+        )
+
+        block_reasons: list[str] = []
+        allowed_statuses = {"approved", "approved_with_changes"}
+        if approval_status not in allowed_statuses:
+            block_reasons.append(
+                "approval_status fuera de criterio de continuidad "
+                f"(valor={approval_status or 'vacío'}, esperado in {sorted(allowed_statuses)})"
+            )
+
+        critical_risks = self._extract_critical_items(issues + security_observations)
+        if critical_risks:
+            block_reasons.append(
+                "riesgos críticos detectados: " + " | ".join(critical_risks)
+            )
+
+        return len(block_reasons) == 0, block_reasons
+
+    def _evaluate_qa_gate(self, test_plan: BaseModel) -> Tuple[bool, list[str]]:
+        release_gates = getattr(test_plan, "release_gates", []) or []
+        coverage = getattr(test_plan, "coverage", []) or []
+
+        block_reasons: list[str] = []
+        failed_gates = self._extract_failed_release_gates(release_gates)
+        if failed_gates:
+            block_reasons.append("release_gates no cumplidos: " + " | ".join(failed_gates))
+
+        coverage_gaps = self._extract_gap_items(coverage + release_gates)
+        if coverage_gaps:
+            block_reasons.append("gaps de QA/coverage: " + " | ".join(coverage_gaps))
+
+        return len(block_reasons) == 0, block_reasons
+
+    def _extract_critical_items(self, items: list[str]) -> list[str]:
+        critical_pattern = re.compile(
+            r"\b(critical|crítico|critico|high risk|severo|bloqueante|blocker)\b",
+            re.IGNORECASE,
+        )
+        return [item for item in items if critical_pattern.search(item or "")]
+
+    def _extract_gap_items(self, items: list[str]) -> list[str]:
+        gap_pattern = re.compile(
+            r"\b(gap|faltante|missing|pendiente|incompleto|insuficiente)\b",
+            re.IGNORECASE,
+        )
+        return [item for item in items if gap_pattern.search(item or "")]
+
+    def _extract_failed_release_gates(self, release_gates: list[str]) -> list[str]:
+        failed_pattern = re.compile(
+            r"\b(fail|failed|no cumple|blocked|bloqueado|rechazado|pendiente)\b",
+            re.IGNORECASE,
+        )
+        return [gate for gate in release_gates if failed_pattern.search(gate or "")]
+
+    def _format_blocking_audit_entry(
+        self, gate_name: str, block_reasons: list[str]
+    ) -> str:
+        reasons = " || ".join(block_reasons) if block_reasons else "sin detalle"
+        return f"Pipeline bloqueado en {gate_name}. Criterios incumplidos: {reasons}"
 
 
 # ==============================================================
