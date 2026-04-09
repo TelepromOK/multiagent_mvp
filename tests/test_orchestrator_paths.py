@@ -4,6 +4,7 @@ import asyncio
 
 from app.knowledge import build_default_knowledge_provider
 from app.orchestrator import PipelineOrchestrator
+import app.orchestrator as orchestrator_module
 from app.schemas import (
     ArchitectureReviewerReport,
     BackendEndpoint,
@@ -207,6 +208,86 @@ def test_extract_raw_output_supports_sdk_variants():
         def final_output_as(self, _model):
             return expected
 
+    class ResultD:
+        final_output = False
+
+        def final_output_as(self, _model):
+            return expected
+
     assert orch._extract_raw_output(ResultA(), ProductBrief) == expected
     assert orch._extract_raw_output(ResultB(), ProductBrief) is not None
     assert orch._extract_raw_output(ResultC(), ProductBrief) == expected
+    assert orch._extract_raw_output(ResultD(), ProductBrief) == expected
+
+
+def test_run_role_retries_once_on_invalid_output_and_recovers():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    calls = {"count": 0}
+
+    class FakeResult:
+        def __init__(self, final_output=None):
+            self.final_output = final_output
+
+    class FakeRunner:
+        @staticmethod
+        async def run(agent, prompt):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return FakeResult(final_output=False)  # inválido -> fuerza retry
+            return FakeResult(
+                final_output={
+                    "product_summary": "ok",
+                    "business_goals": ["g"],
+                    "personas": ["p"],
+                    "epics": ["e"],
+                    "risks": ["r"],
+                }
+            )
+
+    previous_runner = orchestrator_module.Runner
+    orchestrator_module.Runner = FakeRunner
+    try:
+        async def _run():
+            return await orch._run_role(
+                role="product_owner",
+                agent_builder=lambda _: object(),
+                input_payload={"title": "t", "goal": "g", "constraints": [], "context": {}},
+            )
+
+        result = asyncio.run(_run())
+        assert result.product_summary == "ok"
+        assert calls["count"] == 2
+    finally:
+        orchestrator_module.Runner = previous_runner
+
+
+def test_run_role_fails_after_retry_if_output_stays_invalid():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+
+    class FakeResult:
+        def __init__(self, final_output=None):
+            self.final_output = final_output
+
+    class FakeRunner:
+        @staticmethod
+        async def run(agent, prompt):
+            return FakeResult(final_output=False)
+
+    previous_runner = orchestrator_module.Runner
+    orchestrator_module.Runner = FakeRunner
+    try:
+        async def _run():
+            return await orch._run_role(
+                role="product_owner",
+                agent_builder=lambda _: object(),
+                input_payload={"title": "t", "goal": "g", "constraints": [], "context": {}},
+            )
+
+        try:
+            asyncio.run(_run())
+        except RuntimeError as exc:
+            assert "product_owner" in str(exc)
+        else:
+            raise AssertionError("Expected RuntimeError after retry exhaustion")
+    finally:
+        orchestrator_module.Runner = previous_runner

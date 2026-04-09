@@ -256,25 +256,36 @@ class PipelineOrchestrator:
             output_model=output_model,
         )
 
-        result = await self._run_with_retry(
-            agent=agent,
-            prompt=prompt,
-            timeout_seconds=45,
-            max_retries=1,
-            role=role,
-        )
+        parsed: BaseModel | None = None
+        last_error: Exception | None = None
 
-        # Manejo robusto de salida
-        raw_output = self._extract_raw_output(result, output_model)
-        if raw_output is None:
-            raise RuntimeError(f"El agente {role} no devolvió output válido")
+        # Reintento único con prompt de reparación para robustecer ejecución.
+        for attempt in range(2):
+            attempt_prompt = prompt
+            if attempt == 1:
+                attempt_prompt = (
+                    f"{prompt}\n\n"
+                    "Tu salida anterior fue inválida para el schema requerido. "
+                    "Respondé nuevamente SOLO JSON válido compatible con el schema."
+                )
 
-        try:
-            parsed = self._coerce_output(output_model, raw_output)
-        except (TypeError, ValueError) as exc:
-            raise RuntimeError(
-                f"Salida inválida del agente {role}: {type(raw_output)!r}. Error: {exc}"
-            ) from exc
+            result = await Runner.run(agent, attempt_prompt)
+
+            raw_output = self._extract_raw_output(result, output_model)
+            if raw_output is None:
+                last_error = RuntimeError(f"El agente {role} no devolvió output válido")
+                continue
+
+            try:
+                parsed = self._coerce_output(output_model, raw_output)
+                break
+            except (TypeError, ValueError) as exc:
+                last_error = RuntimeError(
+                    f"Salida inválida del agente {role}: {type(raw_output)!r}. Error: {exc}"
+                )
+
+        if parsed is None:
+            raise last_error or RuntimeError(f"Fallo desconocido parseando salida de {role}")
 
         print(f"[END] role={role}")
 
@@ -505,7 +516,7 @@ class PipelineOrchestrator:
     def _extract_raw_output(self, result: Any, output_model: Type[BaseModel]) -> Any:
         """Obtiene la mejor candidata de salida soportando distintas versiones del SDK."""
         raw_output = getattr(result, "final_output", None)
-        if raw_output not in (None, "", []):
+        if self._is_usable_output_candidate(raw_output):
             return raw_output
 
         final_output_as = getattr(result, "final_output_as", None)
@@ -514,16 +525,24 @@ class PipelineOrchestrator:
                 candidate = final_output_as(output_model)
             except TypeError:
                 candidate = final_output_as()
-            if candidate not in (None, "", []):
+            if self._is_usable_output_candidate(candidate):
                 return candidate
-        elif final_output_as not in (None, "", []):
+        elif self._is_usable_output_candidate(final_output_as):
             return final_output_as
 
         output_text = getattr(result, "output_text", None)
-        if output_text not in (None, "", []):
+        if self._is_usable_output_candidate(output_text):
             return output_text
 
         return None
+
+    def _is_usable_output_candidate(self, value: Any) -> bool:
+        """Filtra candidatos vacíos o no estructurados para parsing."""
+        if value in (None, "", []):
+            return False
+        if isinstance(value, bool):
+            return False
+        return True
 
     def _extract_agent_dialogue(self, result: Any) -> list[str]:
         """Extrae trazas de diálogo del resultado del SDK sin romper compatibilidad.
