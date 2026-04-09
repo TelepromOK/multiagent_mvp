@@ -123,6 +123,14 @@ class ProjectState(BaseModel):
     context: Dict[str, Any]
     artifacts: ProjectArtifacts = Field(default_factory=ProjectArtifacts)
     audit_log: List[str] = Field(default_factory=list)
+    agent_dialogue: List[str] = Field(
+        default_factory=list,
+        description="Evidencia textual de decisiones explícitas entre agentes",
+    )
+    open_questions: List[str] = Field(
+        default_factory=list,
+        description="Dudas de alcance pendientes de confirmación del Product Owner",
+    )
 
 
 class ProjectResponse(BaseModel):
