@@ -535,6 +535,16 @@ def build_qa_agent(role_context: str):
         - Definí criterios de aceptación
         - Incluí pruebas funcionales y no funcionales
         - Pensá en regresión
+        - Si un release gate es bloqueante, prefijalo con "BLOCKER:"
+
+        Skills del rol:
+        {_format_skills("qa_analyst")}
+
+        Perfil operativo:
+        {_format_behavior("qa_analyst")}
+
+        Quality gates del rol:
+        {_format_gates("qa_analyst")}
 
         Skills del rol:
         {_format_skills("qa_analyst")}

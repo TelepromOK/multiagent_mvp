@@ -500,6 +500,30 @@ class PipelineOrchestrator:
 
         raise TypeError(f"Formato de salida no soportado: {type(raw_output)!r}")
 
+    def _extract_agent_dialogue(self, result: Any) -> list[str]:
+        """Extrae trazas de diálogo del resultado del SDK sin romper compatibilidad.
+
+        Algunas versiones/flujos del runtime pueden intentar acceder a este helper.
+        Si el resultado no expone mensajes estructurados, devolvemos lista vacía.
+        """
+        if result is None:
+            return []
+
+        candidates = (
+            getattr(result, "messages", None),
+            getattr(result, "new_messages", None),
+            getattr(result, "output", None),
+        )
+
+        for candidate in candidates:
+            if not candidate:
+                continue
+            if isinstance(candidate, list):
+                return [str(item) for item in candidate]
+            return [str(candidate)]
+
+        return []
+
     # ==========================================================
     # AGENT-TO-AGENT QUERY GOVERNANCE
     # ==========================================================
@@ -609,8 +633,13 @@ class PipelineOrchestrator:
         return normalized in {"rejected", "reject", "blocked", "block"}
 
     def _has_blocking_release_gates(self, release_gates: list[str]) -> bool:
-        blocking_keywords = ("block", "bloque", "must-fix", "must fix", "critical")
-        return any(any(keyword in gate.lower() for keyword in blocking_keywords) for gate in release_gates)
+        """Detecta gates bloqueantes con convención explícita.
+
+        Evitamos heurísticas por keywords sueltas (p.ej. "critical"), porque pueden
+        aparecer en gates informativos y bloquear falsos positivos.
+        """
+        blocking_prefixes = ("BLOCKER:", "FAILED:", "REJECTED:")
+        return any(gate.strip().upper().startswith(prefix) for gate in release_gates for prefix in blocking_prefixes)
 
 
 # ==============================================================
