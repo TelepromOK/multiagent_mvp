@@ -5,7 +5,7 @@ import json
 import re
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Iterable, List, Tuple, Type
 
 from pydantic import BaseModel
 
@@ -20,7 +20,15 @@ from .agents import (
     build_architecture_reviewer_agent,
 )
 from .knowledge import KnowledgeProvider
-from .schemas import ProjectArtifacts, ProjectCreateRequest, ProjectResponse, ProjectState
+from .schemas import (
+    BackendSpec,
+    FrontendSpec,
+    ProjectArtifacts,
+    ProjectCreateRequest,
+    ProjectResponse,
+    ProjectState,
+    RequirementsSpec,
+)
 
 try:
     from agents import Runner
@@ -30,99 +38,29 @@ except Exception:
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
 
-# ==========================================================
-# AGENT QUERY GOVERNANCE
-# ==========================================================
+SCOPE_CREEP_HINTS = (
+    "scope creep",
+    "fuera de alcance",
+    "out of scope",
+    "fase 2",
+    "phase 2",
+    "post-mvp",
+    "post mvp",
+    "v2",
+    "nice to have",
+    "nice-to-have",
+    "future release",
+    "futuro release",
+)
 
-AGENT_QUERY_GOVERNANCE: Dict[str, Any] = {
-    "allowed_sender_roles": {
-        "product_owner",
-        "functional_analyst",
-        "backend_developer",
-        "frontend_developer",
-        "architecture_reviewer",
-        "qa_analyst",
-        "commit_manager",
-    },
-    "allowed_receiver_roles": {
-        "product_owner",
-        "functional_analyst",
-        "backend_developer",
-        "frontend_developer",
-        "architecture_reviewer",
-        "qa_analyst",
-        "commit_manager",
-    },
-    "allowed_categories_by_relation": {
-        ("functional_analyst", "product_owner"): {
-            "scope_clarification",
-            "business_rule_clarification",
-        },
-        ("backend_developer", "functional_analyst"): {
-            "api_contract_clarification",
-            "data_rule_clarification",
-        },
-        ("frontend_developer", "functional_analyst"): {
-            "ux_flow_clarification",
-            "acceptance_criteria_clarification",
-        },
-        ("qa_analyst", "functional_analyst"): {
-            "testability_clarification",
-            "acceptance_criteria_clarification",
-        },
-        ("qa_analyst", "backend_developer"): {
-            "integration_test_clarification",
-            "error_handling_clarification",
-        },
-        ("qa_analyst", "frontend_developer"): {
-            "e2e_flow_clarification",
-            "state_behavior_clarification",
-        },
-        ("architecture_reviewer", "backend_developer"): {
-            "risk_clarification",
-            "architecture_consistency",
-        },
-        ("architecture_reviewer", "frontend_developer"): {
-            "risk_clarification",
-            "architecture_consistency",
-        },
-        ("commit_manager", "qa_analyst"): {
-            "release_gate_clarification",
-            "residual_risk_clarification",
-        },
-    },
-    # Gobernanza explícita: solo se admite 1 o 2 preguntas por etapa.
-    "max_questions_per_stage": 2,
-}
-
-
-class ClarificationAnswer(BaseModel):
-    answer: str
-
-
-CLARIFICATION_FLOWS: Dict[str, Dict[str, Any]] = {
-    "functional_analyst": {
-        "ask_role": "product_owner",
-        "topic": "scope/priority",
-        "max_queries_per_stage": 1,
-        "timeout_seconds": 25,
-        "max_retries": 1,
-    },
-    "backend_developer": {
-        "ask_role": "functional_analyst",
-        "topic": "business rules",
-        "max_queries_per_stage": 1,
-        "timeout_seconds": 25,
-        "max_retries": 1,
-    },
-    "frontend_developer": {
-        "ask_role": "backend_developer",
-        "topic": "API contract",
-        "max_queries_per_stage": 1,
-        "timeout_seconds": 25,
-        "max_retries": 1,
-    },
-}
+PO_CONFIRMATION_HINTS = (
+    "product owner confirma",
+    "po confirma",
+    "aprobado por po",
+    "confirmado por product owner",
+    "mvp aprobado",
+    "scope aprobado",
+)
 
 
 class PipelineOrchestrator:
@@ -141,6 +79,7 @@ class PipelineOrchestrator:
             context=request.context,
             artifacts=ProjectArtifacts(),
             audit_log=["Proyecto creado"],
+            agent_dialogue=self._extract_agent_dialogue(request.context),
         )
 
         # ---------------- PRODUCT OWNER ----------------
@@ -164,6 +103,12 @@ class PipelineOrchestrator:
             input_payload=product_brief.model_dump(),
             state=state,
         )
+        requirements_spec = self._enforce_scope_policy(
+            state=state,
+            role="functional_analyst",
+            artifact=requirements_spec,
+            fallback_scope=product_brief.product_summary,
+        )
         state.artifacts.requirements_spec = requirements_spec
         state.audit_log.append("Analista Funcional completado")
 
@@ -176,6 +121,12 @@ class PipelineOrchestrator:
                 "requirements_spec": requirements_spec.model_dump(),
             },
             state=state,
+        )
+        backend_spec = self._enforce_scope_policy(
+            state=state,
+            role="backend_developer",
+            artifact=backend_spec,
+            fallback_scope=requirements_spec.scope,
         )
         state.artifacts.backend_spec = backend_spec
         state.audit_log.append("Backend Developer completado")
@@ -191,10 +142,16 @@ class PipelineOrchestrator:
             },
             state=state,
         )
+        frontend_spec = self._enforce_scope_policy(
+            state=state,
+            role="frontend_developer",
+            artifact=frontend_spec,
+            fallback_scope=requirements_spec.scope,
+        )
         state.artifacts.frontend_spec = frontend_spec
         state.audit_log.append("Frontend Developer completado")
 
-                # ---------------- ARCHITECTURE REVIEW ----------------
+        # ---------------- ARCHITECTURE REVIEW ----------------
         architecture_review = await self._run_role(
             role="architecture_reviewer",
             agent_builder=build_architecture_reviewer_agent,
@@ -204,6 +161,11 @@ class PipelineOrchestrator:
                 "backend_spec": backend_spec.model_dump(),
                 "frontend_spec": frontend_spec.model_dump(),
             },
+        )
+        architecture_review = self._flag_scope_creep_in_review(
+            state=state,
+            architecture_review=architecture_review,
+            artifacts=[requirements_spec, backend_spec, frontend_spec],
         )
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
@@ -659,77 +621,107 @@ class PipelineOrchestrator:
         out_path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
 
     # ==========================================================
-    # GATES
+    # SCOPE GOVERNANCE
     # ==========================================================
 
-    def _evaluate_architecture_gate(
-        self, architecture_review: BaseModel
-    ) -> Tuple[bool, list[str]]:
-        approval_status = (
-            getattr(architecture_review, "approval_status", "") or ""
-        ).strip().lower()
-        issues = getattr(architecture_review, "issues", []) or []
-        security_observations = (
-            getattr(architecture_review, "security_observations", []) or []
+    def _extract_agent_dialogue(self, context: Dict[str, Any]) -> List[str]:
+        raw_dialogue = context.get("agent_dialogue", [])
+        if isinstance(raw_dialogue, str):
+            return [raw_dialogue]
+        if isinstance(raw_dialogue, list):
+            return [str(item) for item in raw_dialogue if item is not None]
+        return []
+
+    def _enforce_scope_policy(
+        self,
+        state: ProjectState,
+        role: str,
+        artifact: BaseModel,
+        fallback_scope: str,
+    ) -> BaseModel:
+        has_scope_change = self._detect_scope_creep(artifact)
+        has_po_confirmation = self._has_explicit_po_confirmation(state.agent_dialogue)
+        if not has_scope_change or has_po_confirmation:
+            return artifact
+
+        warning = (
+            f"WARNING: {role} propuso cambio de alcance MVP sin confirmación explícita del Product Owner."
+        )
+        state.audit_log.append(warning)
+        state.open_questions.append(
+            f"Confirmar con Product Owner si se aprueba cambio de alcance sugerido por {role}."
         )
 
-        block_reasons: list[str] = []
-        allowed_statuses = {"approved", "approved_with_changes"}
-        if approval_status not in allowed_statuses:
-            block_reasons.append(
-                "approval_status fuera de criterio de continuidad "
-                f"(valor={approval_status or 'vacío'}, esperado in {sorted(allowed_statuses)})"
+        if isinstance(artifact, RequirementsSpec):
+            artifact.scope = fallback_scope
+            artifact.open_questions.append(
+                "Pendiente PO: decidir si se habilita ampliación de scope sugerida por functional_analyst."
             )
+            return artifact
 
-        critical_risks = self._extract_critical_items(issues + security_observations)
-        if critical_risks:
-            block_reasons.append(
-                "riesgos críticos detectados: " + " | ".join(critical_risks)
-            )
+        if isinstance(artifact, BackendSpec):
+            artifact.domain_entities = self._filter_scope_candidates(artifact.domain_entities)
+            artifact.data_model = self._filter_scope_candidates(artifact.data_model)
+            artifact.technical_risks = self._filter_scope_candidates(artifact.technical_risks)
+            artifact.api_endpoints = [
+                endpoint
+                for endpoint in artifact.api_endpoints
+                if not self._looks_like_scope_creep(
+                    f"{endpoint.method} {endpoint.path} {endpoint.purpose}"
+                )
+            ]
+            return artifact
 
-        return len(block_reasons) == 0, block_reasons
+        if isinstance(artifact, FrontendSpec):
+            artifact.integration_points = self._filter_scope_candidates(artifact.integration_points)
+            artifact.ux_risks = self._filter_scope_candidates(artifact.ux_risks)
+            artifact.screens = [
+                screen
+                for screen in artifact.screens
+                if not self._looks_like_scope_creep(
+                    f"{screen.name} {screen.purpose} {' '.join(screen.main_components)}"
+                )
+            ]
+            return artifact
 
-    def _evaluate_qa_gate(self, test_plan: BaseModel) -> Tuple[bool, list[str]]:
-        release_gates = getattr(test_plan, "release_gates", []) or []
-        coverage = getattr(test_plan, "coverage", []) or []
+        return artifact
 
-        block_reasons: list[str] = []
-        failed_gates = self._extract_failed_release_gates(release_gates)
-        if failed_gates:
-            block_reasons.append("release_gates no cumplidos: " + " | ".join(failed_gates))
+    def _flag_scope_creep_in_review(
+        self,
+        state: ProjectState,
+        architecture_review: BaseModel,
+        artifacts: Iterable[BaseModel],
+    ) -> BaseModel:
+        has_scope_creep = any(self._detect_scope_creep(artifact) for artifact in artifacts)
+        has_po_confirmation = self._has_explicit_po_confirmation(state.agent_dialogue)
 
-        coverage_gaps = self._extract_gap_items(coverage + release_gates)
-        if coverage_gaps:
-            block_reasons.append("gaps de QA/coverage: " + " | ".join(coverage_gaps))
+        if not has_scope_creep or has_po_confirmation:
+            return architecture_review
 
-        return len(block_reasons) == 0, block_reasons
-
-    def _extract_critical_items(self, items: list[str]) -> list[str]:
-        critical_pattern = re.compile(
-            r"\b(critical|crítico|critico|high risk|severo|bloqueante|blocker)\b",
-            re.IGNORECASE,
+        issue = (
+            "Scope creep detectado sin decisión explícita del Product Owner en agent_dialogue."
         )
-        return [item for item in items if critical_pattern.search(item or "")]
+        if issue not in architecture_review.issues:
+            architecture_review.issues.append(issue)
+        if architecture_review.approval_status == "approved":
+            architecture_review.approval_status = "approved_with_changes"
+        return architecture_review
 
-    def _extract_gap_items(self, items: list[str]) -> list[str]:
-        gap_pattern = re.compile(
-            r"\b(gap|faltante|missing|pendiente|incompleto|insuficiente)\b",
-            re.IGNORECASE,
-        )
-        return [item for item in items if gap_pattern.search(item or "")]
+    def _detect_scope_creep(self, artifact: BaseModel) -> bool:
+        artifact_text = json.dumps(artifact.model_dump(), ensure_ascii=False).lower()
+        return self._looks_like_scope_creep(artifact_text)
 
-    def _extract_failed_release_gates(self, release_gates: list[str]) -> list[str]:
-        failed_pattern = re.compile(
-            r"\b(fail|failed|no cumple|blocked|bloqueado|rechazado|pendiente)\b",
-            re.IGNORECASE,
-        )
-        return [gate for gate in release_gates if failed_pattern.search(gate or "")]
+    def _has_explicit_po_confirmation(self, agent_dialogue: List[str]) -> bool:
+        dialogue_text = " ".join(agent_dialogue).lower()
+        return any(hint in dialogue_text for hint in PO_CONFIRMATION_HINTS)
 
-    def _format_blocking_audit_entry(
-        self, gate_name: str, block_reasons: list[str]
-    ) -> str:
-        reasons = " || ".join(block_reasons) if block_reasons else "sin detalle"
-        return f"Pipeline bloqueado en {gate_name}. Criterios incumplidos: {reasons}"
+    def _looks_like_scope_creep(self, text: str) -> bool:
+        normalized = text.lower()
+        return any(hint in normalized for hint in SCOPE_CREEP_HINTS)
+
+    def _filter_scope_candidates(self, values: List[str]) -> List[str]:
+        filtered = [value for value in values if not self._looks_like_scope_creep(value)]
+        return filtered or values
 
 
 # ==============================================================
