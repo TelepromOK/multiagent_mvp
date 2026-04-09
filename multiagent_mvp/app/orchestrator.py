@@ -95,7 +95,7 @@ class PipelineOrchestrator:
         state.artifacts.frontend_spec = frontend_spec
         state.audit_log.append("Frontend Developer completado")
 
-                # ---------------- ARCHITECTURE REVIEW ----------------
+        # ---------------- ARCHITECTURE REVIEW ----------------
         architecture_review = await self._run_role(
             role="architecture_reviewer",
             agent_builder=build_architecture_reviewer_agent,
@@ -108,6 +108,17 @@ class PipelineOrchestrator:
         )
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
+        if self._should_block_on_architecture_review(architecture_review.approval_status):
+            state.current_phase = "blocked_architecture_review"
+            state.audit_log.append(
+                f"Pipeline bloqueado por Architecture Reviewer: {architecture_review.approval_status}"
+            )
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- QA ----------------
         test_plan = await self._run_role(
@@ -122,6 +133,15 @@ class PipelineOrchestrator:
         )
         state.artifacts.test_plan = test_plan
         state.audit_log.append("QA Analyst completado")
+        if self._has_blocking_release_gates(test_plan.release_gates):
+            state.current_phase = "blocked_qa_gate"
+            state.audit_log.append("Pipeline bloqueado por QA release gates bloqueantes")
+            self._persist_state(state)
+            return ProjectResponse(
+                project_id=project_id,
+                status="blocked",
+                state=state,
+            )
 
         # ---------------- RELEASE ----------------
         release_bundle = await self._run_role(
@@ -236,6 +256,30 @@ class PipelineOrchestrator:
 
         raise TypeError(f"Formato de salida no soportado: {type(raw_output)!r}")
 
+    def _extract_agent_dialogue(self, result: Any) -> list[str]:
+        """Extrae trazas de diálogo del resultado del SDK sin romper compatibilidad.
+
+        Algunas versiones/flujos del runtime pueden intentar acceder a este helper.
+        Si el resultado no expone mensajes estructurados, devolvemos lista vacía.
+        """
+        if result is None:
+            return []
+
+        candidates = (
+            getattr(result, "messages", None),
+            getattr(result, "new_messages", None),
+            getattr(result, "output", None),
+        )
+
+        for candidate in candidates:
+            if not candidate:
+                continue
+            if isinstance(candidate, list):
+                return [str(item) for item in candidate]
+            return [str(candidate)]
+
+        return []
+
     # ==========================================================
     # STORAGE
     # ==========================================================
@@ -243,6 +287,19 @@ class PipelineOrchestrator:
     def _persist_state(self, state: ProjectState) -> None:
         out_path = DATA_DIR / f"{state.project_id}.json"
         out_path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
+
+    def _should_block_on_architecture_review(self, approval_status: str) -> bool:
+        normalized = approval_status.strip().lower()
+        return normalized in {"rejected", "reject", "blocked", "block"}
+
+    def _has_blocking_release_gates(self, release_gates: list[str]) -> bool:
+        """Detecta gates bloqueantes con convención explícita.
+
+        Evitamos heurísticas por keywords sueltas (p.ej. "critical"), porque pueden
+        aparecer en gates informativos y bloquear falsos positivos.
+        """
+        blocking_prefixes = ("BLOCKER:", "FAILED:", "REJECTED:")
+        return any(gate.strip().upper().startswith(prefix) for gate in release_gates for prefix in blocking_prefixes)
 
 
 # ==============================================================
