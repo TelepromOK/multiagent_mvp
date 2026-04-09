@@ -1,4 +1,4 @@
-# MVP multiagente para fábrica de software con OpenAI
+# Software Factory Multi-Agent MVP1
 
 Este proyecto es un **MVP funcional** para orquestar un equipo de agentes especializados:
 
