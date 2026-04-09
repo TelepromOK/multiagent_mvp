@@ -127,5 +127,5 @@ class ProjectState(BaseModel):
 
 class ProjectResponse(BaseModel):
     project_id: str
-    status: Literal["completed"]
+    status: Literal["completed", "blocked"]
     state: ProjectState
