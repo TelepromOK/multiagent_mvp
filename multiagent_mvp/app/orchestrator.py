@@ -547,20 +547,26 @@ class PipelineOrchestrator:
 
     def _enforce_scope_policy(
         self,
-        role: str,
+        role: str | None = None,
         input_payload: Dict[str, Any] | None = None,
         *,
+        state: ProjectState | None = None,
         product_owner_approved: bool = False,
+        **_: Any,
     ) -> tuple[bool, str]:
         """Guardrail de alcance con compatibilidad hacia atrás.
 
         Evita AttributeError en runtimes que esperan este método y permite
         evolucionar una política explícita de scope sin romper ejecuciones actuales.
         """
+        resolved_role = role or (state.current_phase if state is not None else None)
+        if resolved_role is None:
+            return True, "Scope policy skipped: role not provided"
+
         payload = input_payload or {}
         scope_change_requested = bool(payload.get("scope_change_requested"))
 
-        if role == "product_owner":
+        if resolved_role == "product_owner":
             return True, "Scope policy OK (Product Owner)"
 
         if scope_change_requested and not product_owner_approved:
