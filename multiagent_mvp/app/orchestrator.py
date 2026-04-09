@@ -242,6 +242,13 @@ class PipelineOrchestrator:
 
         print(f"[START] role={role}")
 
+        scope_allowed, scope_reason = self._enforce_scope_policy(
+            role=role,
+            input_payload=input_payload,
+        )
+        if not scope_allowed:
+            raise RuntimeError(f"Scope policy violation in {role}: {scope_reason}")
+
         output_model: Type[BaseModel] = ROLE_OUTPUT_MODELS[role]
 
         role_context = self.knowledge.get_context(role)
@@ -537,6 +544,29 @@ class PipelineOrchestrator:
         """
         blocking_prefixes = ("BLOCKER:", "FAILED:", "REJECTED:")
         return any(gate.strip().upper().startswith(prefix) for gate in release_gates for prefix in blocking_prefixes)
+
+    def _enforce_scope_policy(
+        self,
+        role: str,
+        input_payload: Dict[str, Any] | None = None,
+        *,
+        product_owner_approved: bool = False,
+    ) -> tuple[bool, str]:
+        """Guardrail de alcance con compatibilidad hacia atrás.
+
+        Evita AttributeError en runtimes que esperan este método y permite
+        evolucionar una política explícita de scope sin romper ejecuciones actuales.
+        """
+        payload = input_payload or {}
+        scope_change_requested = bool(payload.get("scope_change_requested"))
+
+        if role == "product_owner":
+            return True, "Scope policy OK (Product Owner)"
+
+        if scope_change_requested and not product_owner_approved:
+            return False, "Scope change rejected: Product Owner approval required"
+
+        return True, "Scope policy OK"
 
 
 # ==============================================================
