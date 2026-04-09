@@ -160,6 +160,20 @@ def test_pipeline_accepts_tuple_role_outputs():
     assert response.state.artifacts.product_brief is not None
 
 
+def test_pipeline_accepts_tuple_outputs_when_first_item_is_bool_placeholder():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    payloads = _ok_payloads()
+
+    async def fake_run_role(role, agent_builder, input_payload):
+        return False, payloads[role]
+
+    orch._run_role = fake_run_role  # type: ignore[method-assign]
+    response = asyncio.run(orch.run_project(_request()))
+
+    assert response.status == "completed"
+    assert response.state.artifacts.release_bundle is not None
+
+
 def test_coerce_output_supports_model_dict_json_bytes_singleton_list():
     orch = PipelineOrchestrator(build_default_knowledge_provider())
     model = ProductBrief(

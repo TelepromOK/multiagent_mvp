@@ -287,118 +287,6 @@ class PipelineOrchestrator:
         if parsed is None:
             raise last_error or RuntimeError(f"Fallo desconocido parseando salida de {role}")
 
-        print(f"[END] role={role}")
-
-        return parsed
-
-    async def _run_optional_clarification_flow(
-        self,
-        role: str,
-        input_payload: Dict[str, Any],
-        state: ProjectState | None = None,
-    ) -> Dict[str, Any]:
-        flow = CLARIFICATION_FLOWS.get(role)
-        if flow is None:
-            return input_payload
-
-        if not self._needs_clarification(input_payload):
-            return input_payload
-
-        max_queries = int(flow.get("max_queries_per_stage", 1))
-        if max_queries <= 0:
-            return input_payload
-
-        ask_role = str(flow["ask_role"])
-        topic = str(flow["topic"])
-        timeout_seconds = int(flow.get("timeout_seconds", 25))
-        max_retries = int(flow.get("max_retries", 1))
-
-        queries_done = 0
-        enriched_payload = dict(input_payload)
-        clarification_entries: list[dict[str, Any]] = []
-
-        while queries_done < max_queries and self._needs_clarification(enriched_payload):
-            query = self._build_clarification_question(
-                role=role,
-                ask_role=ask_role,
-                topic=topic,
-                input_payload=enriched_payload,
-            )
-
-            answer = await self._request_clarification(
-                ask_role=ask_role,
-                query=query,
-                timeout_seconds=timeout_seconds,
-                max_retries=max_retries,
-            )
-
-            clarification_entries.append(
-                {
-                    "stage": role,
-                    "from_role": role,
-                    "to_role": ask_role,
-                    "topic": topic,
-                    "query": query,
-                    "answer": answer,
-                }
-            )
-
-            queries_done += 1
-            enriched_payload["clarifications"] = clarification_entries
-            enriched_payload["clarification_context"] = (
-                "Usá estas respuestas para resolver ambigüedades antes de generar el artefacto."
-            )
-
-        if state is not None and clarification_entries:
-            state.agent_dialogue.extend(clarification_entries)
-            state.audit_log.append(
-                f"{role}: se realizaron {len(clarification_entries)} consulta(s) a {ask_role}"
-            )
-
-        return enriched_payload
-
-    async def _request_clarification(
-        self,
-        ask_role: str,
-        query: str,
-        timeout_seconds: int,
-        max_retries: int,
-    ) -> str:
-        if ask_role == "product_owner":
-            builder = build_product_owner_agent
-        elif ask_role == "functional_analyst":
-            builder = build_functional_analyst_agent
-        elif ask_role == "backend_developer":
-            builder = build_backend_agent
-        else:
-            raise ValueError(f"Rol de consulta no soportado: {ask_role}")
-
-        role_context = self.knowledge.get_context(ask_role)
-        agent = builder(role_context)
-
-        consultation_prompt = (
-            f"Actuá como {ask_role} y respondé SOLO JSON válido.\n"
-            f"Consulta: {query}\n\n"
-            f"Schema:\n{json.dumps(ClarificationAnswer.model_json_schema(), ensure_ascii=False, indent=2)}"
-        )
-
-        result = await self._run_with_retry(
-            agent=agent,
-            prompt=consultation_prompt,
-            timeout_seconds=timeout_seconds,
-            max_retries=max_retries,
-            role=f"{ask_role}(consultation)",
-        )
-
-        raw_output = getattr(result, "final_output", None)
-        if raw_output is None:
-            raw_output = getattr(result, "final_output_as", None)
-        if raw_output is None:
-            raise RuntimeError(f"{ask_role} no devolvió respuesta de consulta")
-
-        parsed = self._coerce_output(ClarificationAnswer, raw_output)
-        return parsed.answer
-
     async def _run_with_retry(
         self,
         agent: Any,
@@ -572,9 +460,14 @@ class PipelineOrchestrator:
         """Normaliza resultados de rol ante variaciones de integración.
 
         Algunos runtimes pueden devolver `(output, metadata)`; en ese caso
-        usamos el primer elemento para conservar compatibilidad.
+        seleccionamos el primer elemento utilizable para conservar compatibilidad.
         """
-        normalized = value[0] if isinstance(value, tuple) and value else value
+        normalized = value
+        if isinstance(value, tuple) and value:
+            normalized = next(
+                (item for item in value if self._is_usable_output_candidate(item)),
+                value[0],
+            )
         output_model: Type[BaseModel] = ROLE_OUTPUT_MODELS[role]
         return self._coerce_output(output_model, normalized)
 
