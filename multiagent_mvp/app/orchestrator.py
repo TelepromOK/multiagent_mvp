@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import re
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Iterable, List, Tuple, Type
 
 from pydantic import BaseModel
 
@@ -18,7 +20,15 @@ from .agents import (
     build_architecture_reviewer_agent,
 )
 from .knowledge import KnowledgeProvider
-from .schemas import ProjectArtifacts, ProjectCreateRequest, ProjectResponse, ProjectState
+from .schemas import (
+    BackendSpec,
+    FrontendSpec,
+    ProjectArtifacts,
+    ProjectCreateRequest,
+    ProjectResponse,
+    ProjectState,
+    RequirementsSpec,
+)
 
 try:
     from agents import Runner
@@ -62,6 +72,7 @@ class PipelineOrchestrator:
             context=request.context,
             artifacts=ProjectArtifacts(),
             audit_log=["Proyecto creado"],
+            agent_dialogue=self._extract_agent_dialogue(request.context),
         )
 
         # ---------------- PRODUCT OWNER ----------------
@@ -84,6 +95,13 @@ class PipelineOrchestrator:
             role="functional_analyst",
             agent_builder=build_functional_analyst_agent,
             input_payload=product_brief.model_dump(),
+            state=state,
+        )
+        requirements_spec = self._enforce_scope_policy(
+            state=state,
+            role="functional_analyst",
+            artifact=requirements_spec,
+            fallback_scope=product_brief.product_summary,
         )
         requirements_spec = self._normalize_role_result("functional_analyst", requirements_spec)
         state.artifacts.requirements_spec = requirements_spec
@@ -97,6 +115,7 @@ class PipelineOrchestrator:
                 "product_brief": product_brief.model_dump(),
                 "requirements_spec": requirements_spec.model_dump(),
             },
+            state=state,
         )
         backend_spec = self._normalize_role_result("backend_developer", backend_spec)
         state.artifacts.backend_spec = backend_spec
@@ -111,6 +130,7 @@ class PipelineOrchestrator:
                 "requirements_spec": requirements_spec.model_dump(),
                 "backend_spec": backend_spec.model_dump(),
             },
+            state=state,
         )
         frontend_spec = self._normalize_role_result("frontend_developer", frontend_spec)
         state.artifacts.frontend_spec = frontend_spec
@@ -202,6 +222,7 @@ class PipelineOrchestrator:
         role: str,
         agent_builder,
         input_payload: Dict[str, Any],
+        state: ProjectState | None = None,
     ) -> BaseModel:
 
         if Runner is None:
@@ -223,9 +244,15 @@ class PipelineOrchestrator:
         role_context = self.knowledge.get_context(role)
         agent = agent_builder(role_context)
 
-        prompt = self._build_prompt(
+        consultation_payload = await self._run_optional_clarification_flow(
             role=role,
             input_payload=input_payload,
+            state=state,
+        )
+
+        prompt = self._build_prompt(
+            role=role,
+            input_payload=consultation_payload,
             output_model=output_model,
         )
 
@@ -260,9 +287,67 @@ class PipelineOrchestrator:
         if parsed is None:
             raise last_error or RuntimeError(f"Fallo desconocido parseando salida de {role}")
 
-        print(f"[END] role={role}")
+    async def _run_with_retry(
+        self,
+        agent: Any,
+        prompt: str,
+        timeout_seconds: int,
+        max_retries: int,
+        role: str,
+    ) -> Any:
+        attempt = 0
+        while True:
+            try:
+                return await asyncio.wait_for(
+                    Runner.run(agent, prompt),
+                    timeout=timeout_seconds,
+                )
+            except TimeoutError:
+                attempt += 1
+                if attempt > max_retries:
+                    raise RuntimeError(
+                        f"Timeout ejecutando {role} tras {attempt} intento(s)"
+                    ) from None
+            except Exception:
+                attempt += 1
+                if attempt > max_retries:
+                    raise RuntimeError(
+                        f"Error ejecutando {role} tras {attempt} intento(s)"
+                    ) from None
 
-        return parsed
+    def _needs_clarification(self, input_payload: Dict[str, Any]) -> bool:
+        explicit_signal = bool(
+            input_payload.get("clarification_needed")
+            or input_payload.get("_clarification_needed")
+            or input_payload.get("clarification_request")
+        )
+        if explicit_signal:
+            return True
+
+        markers = {"tbd", "todo", "unknown", "pendiente", "por definir", "?"}
+        serialized = json.dumps(input_payload, ensure_ascii=False).lower()
+        if any(marker in serialized for marker in markers):
+            return True
+
+        open_questions = input_payload.get("open_questions")
+        if isinstance(open_questions, list) and len(open_questions) > 0:
+            return True
+
+        return False
+
+    def _build_clarification_question(
+        self,
+        role: str,
+        ask_role: str,
+        topic: str,
+        input_payload: Dict[str, Any],
+    ) -> str:
+        return (
+            f"El rol {role} necesita aclaración sobre {topic}. "
+            f"Respondé con precisión y foco MVP usando este contexto: "
+            f"{json.dumps(input_payload, ensure_ascii=False)}. "
+            f"Limitá la respuesta a decisiones accionables para {role}."
+        )
 
     # ==========================================================
     # PROMPT BUILDER
