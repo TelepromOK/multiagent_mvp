@@ -13,6 +13,8 @@ from app.schemas import (
     FrontendSpec,
     ProductBrief,
     ProjectCreateRequest,
+    ProjectArtifacts,
+    ProjectState,
     ReleaseBundle,
     RequirementItem,
     RequirementsSpec,
@@ -305,3 +307,30 @@ def test_run_role_fails_after_retry_if_output_stays_invalid():
             raise AssertionError("Expected RuntimeError after retry exhaustion")
     finally:
         orchestrator_module.Runner = previous_runner
+
+
+def test_optional_clarification_flow_hook_is_available_and_stable():
+    orch = PipelineOrchestrator(build_default_knowledge_provider())
+    state = ProjectState(
+        project_id="p1",
+        title="t",
+        goal="g" * 10,
+        current_phase="functional_analyst",
+        constraints=[],
+        context={},
+        artifacts=ProjectArtifacts(),
+        audit_log=[],
+    )
+
+    payload = {"k": "v"}
+    result = asyncio.run(
+        orch._run_optional_clarification_flow(
+            role="functional_analyst",
+            input_payload=payload,
+            state=state,
+            max_questions=2,
+        )
+    )
+
+    assert result == payload
+    assert any("Clarification flow evaluado" in line for line in state.audit_log)

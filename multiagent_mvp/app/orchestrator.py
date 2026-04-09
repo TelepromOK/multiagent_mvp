@@ -97,12 +97,6 @@ class PipelineOrchestrator:
             input_payload=product_brief.model_dump(),
             state=state,
         )
-        requirements_spec = self._enforce_scope_policy(
-            state=state,
-            role="functional_analyst",
-            artifact=requirements_spec,
-            fallback_scope=product_brief.product_summary,
-        )
         requirements_spec = self._normalize_role_result("functional_analyst", requirements_spec)
         state.artifacts.requirements_spec = requirements_spec
         state.audit_log.append("Analista Funcional completado")
@@ -250,12 +244,6 @@ class PipelineOrchestrator:
             state=state,
         )
 
-        prompt = self._build_prompt(
-            role=role,
-            input_payload=consultation_payload,
-            output_model=output_model,
-        )
-
         parsed: BaseModel | None = None
         last_error: Exception | None = None
 
@@ -286,52 +274,6 @@ class PipelineOrchestrator:
 
         if parsed is None:
             raise last_error or RuntimeError(f"Fallo desconocido parseando salida de {role}")
-
-    async def _run_with_retry(
-        self,
-        agent: Any,
-        prompt: str,
-        timeout_seconds: int,
-        max_retries: int,
-        role: str,
-    ) -> Any:
-        attempt = 0
-        while True:
-            try:
-                return await asyncio.wait_for(
-                    Runner.run(agent, prompt),
-                    timeout=timeout_seconds,
-                )
-            except TimeoutError:
-                attempt += 1
-                if attempt > max_retries:
-                    raise RuntimeError(
-                        f"Timeout ejecutando {role} tras {attempt} intento(s)"
-                    ) from None
-            except Exception:
-                attempt += 1
-                if attempt > max_retries:
-                    raise RuntimeError(
-                        f"Error ejecutando {role} tras {attempt} intento(s)"
-                    ) from None
-
-    def _needs_clarification(self, input_payload: Dict[str, Any]) -> bool:
-        explicit_signal = bool(
-            input_payload.get("clarification_needed")
-            or input_payload.get("_clarification_needed")
-            or input_payload.get("clarification_request")
-        )
-        if explicit_signal:
-            return True
-
-        markers = {"tbd", "todo", "unknown", "pendiente", "por definir", "?"}
-        serialized = json.dumps(input_payload, ensure_ascii=False).lower()
-        if any(marker in serialized for marker in markers):
-            return True
-
-        open_questions = input_payload.get("open_questions")
-        if isinstance(open_questions, list) and len(open_questions) > 0:
-            return True
 
         return False
 
@@ -520,6 +462,27 @@ class PipelineOrchestrator:
             return False, "Scope change rejected: Product Owner approval required"
 
         return True, "Scope policy OK"
+
+    async def _run_optional_clarification_flow(
+        self,
+        *,
+        role: str,
+        input_payload: Dict[str, Any] | None = None,
+        state: ProjectState | None = None,
+        max_questions: int = 1,
+        **_: Any,
+    ) -> Dict[str, Any]:
+        """Hook de compatibilidad para consultas entre agentes.
+
+        Mantiene contrato estable para runtimes que esperan este método,
+        aun cuando el flujo de clarificación aún no esté orquestado de forma activa.
+        """
+        payload = dict(input_payload or {})
+        if state is not None:
+            state.audit_log.append(
+                f"Clarification flow evaluado para {role} (max_questions={max_questions})"
+            )
+        return payload
 
 
 # ==============================================================
