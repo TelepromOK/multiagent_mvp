@@ -546,15 +546,6 @@ def build_qa_agent(role_context: str):
         Quality gates del rol:
         {_format_gates("qa_analyst")}
 
-        Skills del rol:
-        {_format_skills("qa_analyst")}
-
-        Perfil operativo:
-        {_format_behavior("qa_analyst")}
-
-        Quality gates del rol:
-        {_format_gates("qa_analyst")}
-
         Contexto:
         {role_context}
         """
