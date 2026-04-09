@@ -86,6 +86,7 @@ class PipelineOrchestrator:
                 "context": request.context,
             },
         )
+        product_brief = self._normalize_role_result("product_owner", product_brief)
         state.artifacts.product_brief = product_brief
         state.audit_log.append("Product Owner completado")
 
@@ -102,6 +103,7 @@ class PipelineOrchestrator:
             artifact=requirements_spec,
             fallback_scope=product_brief.product_summary,
         )
+        requirements_spec = self._normalize_role_result("functional_analyst", requirements_spec)
         state.artifacts.requirements_spec = requirements_spec
         state.audit_log.append("Analista Funcional completado")
 
@@ -121,6 +123,7 @@ class PipelineOrchestrator:
             artifact=backend_spec,
             fallback_scope=requirements_spec.scope,
         )
+        backend_spec = self._normalize_role_result("backend_developer", backend_spec)
         state.artifacts.backend_spec = backend_spec
         state.audit_log.append("Backend Developer completado")
 
@@ -141,6 +144,7 @@ class PipelineOrchestrator:
             artifact=frontend_spec,
             fallback_scope=requirements_spec.scope,
         )
+        frontend_spec = self._normalize_role_result("frontend_developer", frontend_spec)
         state.artifacts.frontend_spec = frontend_spec
         state.audit_log.append("Frontend Developer completado")
 
@@ -155,11 +159,7 @@ class PipelineOrchestrator:
                 "frontend_spec": frontend_spec.model_dump(),
             },
         )
-        architecture_review = self._flag_scope_creep_in_review(
-            state=state,
-            architecture_review=architecture_review,
-            artifacts=[requirements_spec, backend_spec, frontend_spec],
-        )
+        architecture_review = self._normalize_role_result("architecture_reviewer", architecture_review)
         state.artifacts.architecture_review = architecture_review
         state.audit_log.append("Architecture Reviewer completado")
         if self._should_block_on_architecture_review(architecture_review.approval_status):
@@ -185,6 +185,7 @@ class PipelineOrchestrator:
                 "architecture_review": architecture_review.model_dump(),
             },
         )
+        test_plan = self._normalize_role_result("qa_analyst", test_plan)
         state.artifacts.test_plan = test_plan
         state.audit_log.append("QA Analyst completado")
         if self._has_blocking_release_gates(test_plan.release_gates):
@@ -209,6 +210,7 @@ class PipelineOrchestrator:
                 "architecture_review": architecture_review.model_dump(),
             },
         )
+        release_bundle = self._normalize_role_result("commit_manager", release_bundle)
         state.artifacts.release_bundle = release_bundle
         state.audit_log.append("Commit Manager completado")
 
@@ -523,6 +525,16 @@ class PipelineOrchestrator:
             return [str(candidate)]
 
         return []
+
+    def _normalize_role_result(self, role: str, value: Any) -> BaseModel:
+        """Normaliza resultados de rol ante variaciones de integración.
+
+        Algunos runtimes pueden devolver `(output, metadata)`; en ese caso
+        usamos el primer elemento para conservar compatibilidad.
+        """
+        normalized = value[0] if isinstance(value, tuple) and value else value
+        output_model: Type[BaseModel] = ROLE_OUTPUT_MODELS[role]
+        return self._coerce_output(output_model, normalized)
 
     # ==========================================================
     # STORAGE
