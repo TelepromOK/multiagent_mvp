@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from pathlib import Path
@@ -27,6 +28,35 @@ except Exception:
 
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
+
+
+class ClarificationAnswer(BaseModel):
+    answer: str
+
+
+CLARIFICATION_FLOWS: Dict[str, Dict[str, Any]] = {
+    "functional_analyst": {
+        "ask_role": "product_owner",
+        "topic": "scope/priority",
+        "max_queries_per_stage": 1,
+        "timeout_seconds": 25,
+        "max_retries": 1,
+    },
+    "backend_developer": {
+        "ask_role": "functional_analyst",
+        "topic": "business rules",
+        "max_queries_per_stage": 1,
+        "timeout_seconds": 25,
+        "max_retries": 1,
+    },
+    "frontend_developer": {
+        "ask_role": "backend_developer",
+        "topic": "API contract",
+        "max_queries_per_stage": 1,
+        "timeout_seconds": 25,
+        "max_retries": 1,
+    },
+}
 
 
 class PipelineOrchestrator:
@@ -66,6 +96,7 @@ class PipelineOrchestrator:
             role="functional_analyst",
             agent_builder=build_functional_analyst_agent,
             input_payload=product_brief.model_dump(),
+            state=state,
         )
         state.artifacts.requirements_spec = requirements_spec
         state.audit_log.append("Analista Funcional completado")
@@ -78,6 +109,7 @@ class PipelineOrchestrator:
                 "product_brief": product_brief.model_dump(),
                 "requirements_spec": requirements_spec.model_dump(),
             },
+            state=state,
         )
         state.artifacts.backend_spec = backend_spec
         state.audit_log.append("Backend Developer completado")
@@ -91,6 +123,7 @@ class PipelineOrchestrator:
                 "requirements_spec": requirements_spec.model_dump(),
                 "backend_spec": backend_spec.model_dump(),
             },
+            state=state,
         )
         state.artifacts.frontend_spec = frontend_spec
         state.audit_log.append("Frontend Developer completado")
@@ -158,6 +191,7 @@ class PipelineOrchestrator:
         role: str,
         agent_builder,
         input_payload: Dict[str, Any],
+        state: ProjectState | None = None,
     ) -> BaseModel:
 
         if Runner is None:
@@ -172,13 +206,25 @@ class PipelineOrchestrator:
         role_context = self.knowledge.get_context(role)
         agent = agent_builder(role_context)
 
-        prompt = self._build_prompt(
+        consultation_payload = await self._run_optional_clarification_flow(
             role=role,
             input_payload=input_payload,
+            state=state,
+        )
+
+        prompt = self._build_prompt(
+            role=role,
+            input_payload=consultation_payload,
             output_model=output_model,
         )
 
-        result = await Runner.run(agent, prompt)
+        result = await self._run_with_retry(
+            agent=agent,
+            prompt=prompt,
+            timeout_seconds=45,
+            max_retries=1,
+            role=role,
+        )
 
         # Manejo robusto de salida
         raw_output = getattr(result, "final_output", None)
@@ -194,6 +240,176 @@ class PipelineOrchestrator:
         print(f"[END] role={role}")
 
         return parsed
+
+    async def _run_optional_clarification_flow(
+        self,
+        role: str,
+        input_payload: Dict[str, Any],
+        state: ProjectState | None = None,
+    ) -> Dict[str, Any]:
+        flow = CLARIFICATION_FLOWS.get(role)
+        if flow is None:
+            return input_payload
+
+        if not self._needs_clarification(input_payload):
+            return input_payload
+
+        max_queries = int(flow.get("max_queries_per_stage", 1))
+        if max_queries <= 0:
+            return input_payload
+
+        ask_role = str(flow["ask_role"])
+        topic = str(flow["topic"])
+        timeout_seconds = int(flow.get("timeout_seconds", 25))
+        max_retries = int(flow.get("max_retries", 1))
+
+        queries_done = 0
+        enriched_payload = dict(input_payload)
+        clarification_entries: list[dict[str, Any]] = []
+
+        while queries_done < max_queries and self._needs_clarification(enriched_payload):
+            query = self._build_clarification_question(
+                role=role,
+                ask_role=ask_role,
+                topic=topic,
+                input_payload=enriched_payload,
+            )
+
+            answer = await self._request_clarification(
+                ask_role=ask_role,
+                query=query,
+                timeout_seconds=timeout_seconds,
+                max_retries=max_retries,
+            )
+
+            clarification_entries.append(
+                {
+                    "stage": role,
+                    "from_role": role,
+                    "to_role": ask_role,
+                    "topic": topic,
+                    "query": query,
+                    "answer": answer,
+                }
+            )
+
+            queries_done += 1
+            enriched_payload["clarifications"] = clarification_entries
+            enriched_payload["clarification_context"] = (
+                "Usá estas respuestas para resolver ambigüedades antes de generar el artefacto."
+            )
+
+        if state is not None and clarification_entries:
+            state.agent_dialogue.extend(clarification_entries)
+            state.audit_log.append(
+                f"{role}: se realizaron {len(clarification_entries)} consulta(s) a {ask_role}"
+            )
+
+        return enriched_payload
+
+    async def _request_clarification(
+        self,
+        ask_role: str,
+        query: str,
+        timeout_seconds: int,
+        max_retries: int,
+    ) -> str:
+        if ask_role == "product_owner":
+            builder = build_product_owner_agent
+        elif ask_role == "functional_analyst":
+            builder = build_functional_analyst_agent
+        elif ask_role == "backend_developer":
+            builder = build_backend_agent
+        else:
+            raise ValueError(f"Rol de consulta no soportado: {ask_role}")
+
+        role_context = self.knowledge.get_context(ask_role)
+        agent = builder(role_context)
+
+        consultation_prompt = (
+            f"Actuá como {ask_role} y respondé SOLO JSON válido.\n"
+            f"Consulta: {query}\n\n"
+            f"Schema:\n{json.dumps(ClarificationAnswer.model_json_schema(), ensure_ascii=False, indent=2)}"
+        )
+
+        result = await self._run_with_retry(
+            agent=agent,
+            prompt=consultation_prompt,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            role=f"{ask_role}(consultation)",
+        )
+
+        raw_output = getattr(result, "final_output", None)
+        if raw_output is None:
+            raw_output = getattr(result, "final_output_as", None)
+        if raw_output is None:
+            raise RuntimeError(f"{ask_role} no devolvió respuesta de consulta")
+
+        parsed = self._coerce_output(ClarificationAnswer, raw_output)
+        return parsed.answer
+
+    async def _run_with_retry(
+        self,
+        agent: Any,
+        prompt: str,
+        timeout_seconds: int,
+        max_retries: int,
+        role: str,
+    ) -> Any:
+        attempt = 0
+        while True:
+            try:
+                return await asyncio.wait_for(
+                    Runner.run(agent, prompt),
+                    timeout=timeout_seconds,
+                )
+            except TimeoutError:
+                attempt += 1
+                if attempt > max_retries:
+                    raise RuntimeError(
+                        f"Timeout ejecutando {role} tras {attempt} intento(s)"
+                    ) from None
+            except Exception:
+                attempt += 1
+                if attempt > max_retries:
+                    raise RuntimeError(
+                        f"Error ejecutando {role} tras {attempt} intento(s)"
+                    ) from None
+
+    def _needs_clarification(self, input_payload: Dict[str, Any]) -> bool:
+        explicit_signal = bool(
+            input_payload.get("clarification_needed")
+            or input_payload.get("_clarification_needed")
+            or input_payload.get("clarification_request")
+        )
+        if explicit_signal:
+            return True
+
+        markers = {"tbd", "todo", "unknown", "pendiente", "por definir", "?"}
+        serialized = json.dumps(input_payload, ensure_ascii=False).lower()
+        if any(marker in serialized for marker in markers):
+            return True
+
+        open_questions = input_payload.get("open_questions")
+        if isinstance(open_questions, list) and len(open_questions) > 0:
+            return True
+
+        return False
+
+    def _build_clarification_question(
+        self,
+        role: str,
+        ask_role: str,
+        topic: str,
+        input_payload: Dict[str, Any],
+    ) -> str:
+        return (
+            f"El rol {role} necesita aclaración sobre {topic}. "
+            f"Respondé con precisión y foco MVP usando este contexto: "
+            f"{json.dumps(input_payload, ensure_ascii=False)}. "
+            f"Limitá la respuesta a decisiones accionables para {role}."
+        )
 
     # ==========================================================
     # PROMPT BUILDER
