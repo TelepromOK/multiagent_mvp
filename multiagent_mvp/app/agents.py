@@ -32,6 +32,58 @@ except Exception:
 # AGENT FACTORY
 # ==========================================================
 
+ROLE_SKILLS = {
+    "product_owner": [
+        "Product discovery y definición de alcance MVP",
+        "Priorización por valor de negocio y riesgo",
+        "Definición de KPIs y outcomes",
+        "Gestión de stakeholders y trade-offs",
+    ],
+    "functional_analyst": [
+        "Elicitación y especificación de requerimientos",
+        "Historias de usuario y criterios de aceptación",
+        "Modelado de reglas de negocio",
+        "Detección de ambigüedades y dependencias",
+    ],
+    "backend_developer": [
+        "Diseño de arquitectura backend por capas",
+        "Diseño de APIs REST y contratos",
+        "Modelado de entidades y persistencia",
+        "Seguridad, escalabilidad y observabilidad",
+    ],
+    "frontend_developer": [
+        "Diseño de UX/UI orientado a tareas",
+        "Arquitectura de componentes reutilizables",
+        "Manejo de estado y flujos de interacción",
+        "Accesibilidad y consistencia visual",
+    ],
+    "architecture_reviewer": [
+        "Revisión de consistencia end-to-end",
+        "Identificación de sobreingeniería",
+        "Evaluación de riesgos técnicos y de seguridad",
+        "Recomendaciones de simplificación para MVP",
+    ],
+    "qa_analyst": [
+        "Estrategia de testing funcional y no funcional",
+        "Diseño de casos de prueba y cobertura",
+        "Definición de quality gates de release",
+        "Análisis de regresión y riesgos de calidad",
+    ],
+    "commit_manager": [
+        "Estrategia de branching y versionado",
+        "Conventional Commits y atomicidad de cambios",
+        "Preparación de release notes y checklist",
+        "Coordinación de entrega y handoff a operación",
+    ],
+}
+
+
+def _format_skills(role_key: str) -> str:
+    skills = ROLE_SKILLS.get(role_key, [])
+    if not skills:
+        return "- Sin skills definidas."
+    return "\n".join(f"- {skill}" for skill in skills)
+
 def _make_agent(name: str, instructions: str, output_model: Type[BaseModel]):
     if Agent is None:
         raise RuntimeError(
@@ -63,6 +115,9 @@ def build_product_owner_agent(role_context: str):
         - Identificá stakeholders y usuarios
         - No agregues texto fuera del JSON
 
+        Skills del rol:
+        {_format_skills("product_owner")}
+
         Contexto:
         {role_context}
         """
@@ -83,6 +138,9 @@ def build_functional_analyst_agent(role_context: str):
         - Definí criterios de aceptación
         - Incluí reglas de negocio
         - Evitá ambigüedad
+
+        Skills del rol:
+        {_format_skills("functional_analyst")}
 
         Contexto:
         {role_context}
@@ -105,6 +163,9 @@ def build_backend_agent(role_context: str):
         - Considerá seguridad y escalabilidad
         - Identificá riesgos técnicos
 
+        Skills del rol:
+        {_format_skills("backend_developer")}
+
         Contexto:
         {role_context}
         """
@@ -125,6 +186,9 @@ def build_frontend_agent(role_context: str):
         - Proponé componentes reutilizables
         - Pensá en estados y flujos
         - Considerá accesibilidad
+
+        Skills del rol:
+        {_format_skills("frontend_developer")}
 
         Contexto:
         {role_context}
@@ -147,6 +211,9 @@ def build_qa_agent(role_context: str):
         - Incluí pruebas funcionales y no funcionales
         - Pensá en regresión
 
+        Skills del rol:
+        {_format_skills("qa_analyst")}
+
         Contexto:
         {role_context}
         """
@@ -167,6 +234,9 @@ def build_commit_manager_agent(role_context: str):
         - Generá mensajes claros
         - Incluí checklist de release
         - Definí estrategia de branching
+
+        Skills del rol:
+        {_format_skills("commit_manager")}
 
         Contexto:
         {role_context}
@@ -190,6 +260,9 @@ def build_architecture_reviewer_agent(role_context: str):
         - Señalá riesgos de seguridad y compliance
         - No inventes features fuera del alcance
         - Devolvé solo JSON válido
+
+        Skills del rol:
+        {_format_skills("architecture_reviewer")}
 
         Contexto:
         {role_context}

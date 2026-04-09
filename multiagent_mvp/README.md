@@ -6,6 +6,7 @@ Este proyecto es un **MVP funcional** para orquestar un equipo de agentes especi
 - Analista Funcional
 - Backend Developer
 - Frontend Developer
+- Architecture Reviewer
 - QA Analyst
 - Commit Manager
 
@@ -13,8 +14,9 @@ La idea es que cada agente:
 
 1. reciba un input estructurado,
 2. consulte una base de conocimiento propia,
-3. produzca un output estructurado,
-4. y ese output pase al siguiente agente.
+3. aplique skills específicos según su rol,
+4. produzca un output estructurado,
+5. y ese output pase al siguiente agente.
 
 ## Stack
 
@@ -24,6 +26,21 @@ La idea es que cada agente:
 - **JSON local** como persistencia mínima de `project_state`
 
 > Este MVP prioriza arquitectura, contratos y trazabilidad. No intenta ser un producto final.
+
+## Qué es este sistema (en esencia)
+
+Este repo implementa una **Software Factory autónoma basada en agentes de IA**.  
+No está pensado como un chatbot: está pensado como un pipeline que transforma una necesidad en artefactos de ingeniería listos para construir software.
+
+Flujo conceptual:
+
+1. interpreta una necesidad,
+2. la transforma en especificaciones,
+3. diseña una solución completa,
+4. la valida con una revisión independiente,
+5. y prepara su entrega.
+
+En una línea: este MVP ya es un **AI Software Design Pipeline**.
 
 ## Arquitectura
 
@@ -53,6 +70,11 @@ Orchestrator
    |        v
    |   frontend_spec
    |
+   +--> Architecture Reviewer Agent
+   |        |
+   |        v
+   |   architecture_review
+   |
    +--> QA Agent
    |        |
    |        v
@@ -63,6 +85,54 @@ Orchestrator
             v
        release_bundle
 ```
+
+## Patrón arquitectónico implementado
+
+El núcleo del sistema es un **pipeline multiagente secuencial con contratos tipados**:
+
+- cada etapa está desacoplada de la siguiente,
+- cada agente tiene responsabilidad explícita por rol,
+- el output de cada etapa está validado por esquemas (JSON tipado),
+- el estado global se persiste en `project_state`,
+- y se mantiene trazabilidad completa en `audit_log`.
+
+Esto habilita re-ejecución controlada, auditoría y evolución incremental.
+
+## Qué produce (y qué no)
+
+### Produce artefactos de ingeniería
+
+- Product Brief
+- Requirements Spec
+- Backend Spec
+- Frontend Spec
+- Architecture Review
+- Test Plan
+- Release Bundle
+
+### Todavía no produce
+
+- código de aplicación listo para producción de forma autónoma,
+- CI/CD completamente autónomo,
+- loops de autocorrección end-to-end.
+
+## Etapa actual y evolución
+
+Este MVP está en **Fase 1: Software Design Automation**.
+
+Próxima frontera: **Fase 2: Software Delivery Automation**, donde la evolución natural es:
+
+1. generación de código backend/frontend,
+2. ejecución automática de tests,
+3. loop QA → Dev con realimentación,
+4. integración total con Git (commits/PRs automáticos),
+5. operación como equipo de desarrollo autónomo.
+
+## Diferenciales clave del enfoque
+
+1. **Separación por roles**: simula una organización real de software.
+2. **Outputs estructurados**: usa contratos JSON en lugar de texto libre.
+3. **Reviewer independiente**: incluye una etapa de cuestionamiento arquitectónico antes de QA/release.
 
 ## Requisitos
 
